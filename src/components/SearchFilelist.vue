@@ -1,7 +1,7 @@
 <template>
     <div class="search-filelist" >
         <table v-if="searchresult.files.length > 0" class="nc-table">
-            <thead><tr><th>File</th><th>Content</th></tr></thead>
+            <thead><tr><th>File</th><th v-if="show_content">Content</th></tr></thead>
             <tbody>
                 <tr v-for="file in searchresult.files">
                     <td>
@@ -10,7 +10,7 @@
                             <a :href="file.link" target="_blank">{{ file.name }}</a>
                         </span>
                     </td>
-                    <td><ul><li v-for="highlight in file.highlights.content"><span class="highlight" v-html="highlight"></span></li></ul></td>
+                    <td v-if="show_content"><ul><li v-for="highlight in file.highlights.content"><span class="highlight" v-html="highlight"></span></li></ul></td>
                 </tr>
             </tbody>
         </table>
@@ -25,7 +25,11 @@ import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
 export default {
     name: 'SearchFilelist',
     props: {
-        searchresult: {}
+        searchresult: {},
+        show_content: {
+            type: Boolean,
+            default: false
+        }
     },
     setup() {
         return {

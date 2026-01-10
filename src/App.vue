@@ -14,7 +14,7 @@
 			</NcButton>
 		</div>
 		<div id="searchresult">
-			<SearchFilelist :searchresult="search_result" />
+			<SearchFilelist :searchresult="search_result" :show_content="show_content"/>
 		</div>
 		<div id="pagination">
 			<SearchPagination :searchresult="search_result" @update:page="onPageUpdate" @update:size="onSizeUpdate"/>
@@ -50,7 +50,8 @@ export default {
                 page: 0,
                 size: 10,
                 files: []
-            }
+            },
+            show_content: false,
         }
     },
     components: {
@@ -82,6 +83,7 @@ export default {
 
         onSubmit() {
             this.performSearch();
+            this.show_content = this.search_criteria.content !== '';
         },
 
         performSearch() {
