@@ -1,21 +1,19 @@
 <template>
-    <div class="search-filelist" >
-        <table v-if="searchresult.files.length > 0" class="nc-table">
-            <thead><tr><th>File</th><th v-if="show_content">Content</th></tr></thead>
-            <tbody>
-                <tr v-for="file in searchresult.files">
-                    <td>
-                        <span class="file-link">
-                            <img :src="file.icon_link" class="file-icon" />
-                            <a :href="file.link" target="_blank">{{ file.name }}</a>
-                        </span>
-                    </td>
-                    <td v-if="show_content"><ul><li v-for="highlight in file.highlights.content"><span class="highlight" v-html="highlight"></span></li></ul></td>
-                </tr>
-            </tbody>
-        </table>
-        <div v-else class="noresult">No files to be displayed</div>
-    </div>
+    <table v-if="searchresult.files.length > 0" class="nc-table">
+        <thead><tr><th>File</th><th v-if="show_content">Content</th></tr></thead>
+        <tbody>
+            <tr v-for="file in searchresult.files">
+                <td>
+                    <span class="file-link">
+                        <img :src="file.icon_link" class="file-icon" />
+                        <a :href="file.link" target="_blank">{{ file.name }}</a>
+                    </span>
+                </td>
+                <td v-if="show_content"><ul><li v-for="highlight in file.highlights.content"><span class="highlight" v-html="highlight"></span></li></ul></td>
+            </tr>
+        </tbody>
+    </table>
+    <div v-else class="noresult">No files to be displayed</div>
 </template>
 
 <script>
@@ -46,12 +44,10 @@ export default {
 </script>
 
 <style scoped>
-.search-filelist {
+
+.nc-table {
+    table-layout: fixed;
     width: 100%;
-    display: flex;
-    justify-content: center;
-    padding: 4px 32px;
-    overflow-x: auto;
 }
 
 .nc-table th {
