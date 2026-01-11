@@ -1,37 +1,42 @@
 <template>
-    		<NcContent app-name="filefinder">
-			<NcAppNavigation>
-				<template #list>
-                    <NcAppNavigationCaption name="File Search" isHeading />                                        
-                    <SearchInput :modelValue="search_criteria.content" @update="onContentUpdate" label="Content of the file" />
-                    <SearchInput :modelValue="search_criteria.filename" @update="onFilenameUpdate" label="Filename (wildcards allowed)" />
-					<NcAppNavigationNew text="Search Files" @click="onSubmit"/>
-				</template>
-			</NcAppNavigation>
-			<NcAppContent pageHeading="Search Results">
-                <div id="maincontent">
+    <NcContent app-name="filefinder">
+        <NcAppNavigation>
+            <template #list>
+                <NcAppNavigationCaption name="File Search" isHeading />
+                <SearchInput :modelValue="search_criteria.content" @update="onContentUpdate" label="Content of the file" />
+                <SearchInput :modelValue="search_criteria.filename" @update="onFilenameUpdate" label="Filename (wildcards allowed)" />
+                <NcAppNavigationNew text="Search Files" @click="onSubmit" />
+            </template>
+        </NcAppNavigation>
+        <NcAppContent pageHeading="Search Results">
+            <div id="maincontent">
+                <div v-if="contentState === contentStates.INITIAL" id="initial-state">
+                    <p>Start a search by entering criteria in the navigation panel.</p>
+                </div>
+                <div v-else-if="contentState === contentStates.NO_RESULTS" id="no-results-state">
+                    <h3>Search Results</h3>
+                    <p>No files could be found matching your search criteria.</p>
+                </div>
+                <div v-else-if="contentState === contentStates.SHOW_RESULTS" id="results-state">
                     <div id="searchresult">
-                        <h3 v-if="search_result.hits !== null">Search Results</h3>
-                        <p v-if="search_result.hits === 0">No results found.</p>
-                        <SearchFilelist v-if="search_result.hits > 0" :searchresult="search_result" :show_content="show_content" />
+                        <h3>Search Results</h3>
+                        <SearchFilelist :searchresult="search_result" :show_content="show_content_column"/>
                     </div>
-                    <div id="pagination" v-if="search_result.hits > 0">
+                    <div id="pagination">
                         <SearchPagination :searchresult="search_result" @update:page="onPageUpdate" @update:size="onSizeUpdate" />
                     </div>
                 </div>
-			</NcAppContent>
-		</NcContent>
-
+            </div>
+        </NcAppContent>
+    </NcContent>
 </template>
 
 <script>
 import NcContent from '@nextcloud/vue/dist/Components/NcContent.js'
 import NcAppNavigationNew from '@nextcloud/vue/components/NcAppNavigationNew'
-import NcAppNavigationItem from '@nextcloud/vue/components/NcAppNavigationItem'
 import NcAppNavigation from '@nextcloud/vue/dist/Components/NcAppNavigation.js'
 import NcAppNavigationCaption from '@nextcloud/vue/components/NcAppNavigationCaption'
 import NcAppContent from '@nextcloud/vue/dist/Components/NcAppContent.js'
-import NcButton from '@nextcloud/vue/components/NcButton'
 import SearchInput from './components/SearchInput.vue'
 import SearchFilelist from './components/SearchFilelist.vue'
 import SearchPagination from './components/SearchPagination.vue'
@@ -57,17 +62,21 @@ export default {
                 size: 10,
                 files: []
             },
-            show_content: false,
+            contentStates: {
+                INITIAL: 'initial',
+                NO_RESULTS: 'no_results',
+                SHOW_RESULTS: 'show_results',
+            },
+            contentState: 'initial', // Default state
+            show_content_column: false,
         }
     },
     components: {
         NcContent,
         NcAppContent,
         NcAppNavigation,
-        NcAppNavigationItem,
         NcAppNavigationNew,
         NcAppNavigationCaption,
-        NcButton,
         SearchInput,
         SearchFilelist,
         SearchPagination,
@@ -93,7 +102,6 @@ export default {
 
         onSubmit() {
             this.performSearch();
-            this.show_content = this.search_criteria.content !== '';
         },
 
         performSearch() {
@@ -116,6 +124,14 @@ export default {
                         link: file.link,
                         icon_link: file.icon_link,
                     }));
+
+                    // Update content state based on results
+                    if (this.search_result.hits === 0) {
+                        this.contentState = this.contentStates.NO_RESULTS;
+                    } else {
+                        this.contentState = this.contentStates.SHOW_RESULTS;
+                    }
+                    this.show_content_column = this.search_criteria.content !== '';
                 })
                 .catch((error) => {
                     showError('Search request failed: ' + error.response.data.error_message);
@@ -127,11 +143,19 @@ export default {
 </script>
 
 <style scoped lang="scss">
-#searchcriteria {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
+#maincontent {
     padding: 16px;
+}
+
+#initial-state {
+    text-align: center;
+    font-style: italic;
+    color: #666;
+}
+
+#no-results-state p {
+    font-style: italic;
+    color: #666;
 }
 
 #searchresult {
@@ -140,6 +164,7 @@ export default {
 
 #pagination {
     padding: 16px;
+    margin-bottom: 20px;
     display: flex;
     justify-content: center;
 }

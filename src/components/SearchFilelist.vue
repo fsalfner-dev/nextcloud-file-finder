@@ -47,7 +47,6 @@ export default {
 
 .nc-table {
     table-layout: fixed;
-    width: 100%;
 }
 
 .nc-table th {
