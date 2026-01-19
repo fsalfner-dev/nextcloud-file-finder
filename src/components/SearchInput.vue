@@ -2,6 +2,7 @@
     <div class="search-input">
         <NcTextField :value="modelValue"
             @input="onInput"
+            @keydown.enter="hitEnter"
             :label="label"
             trailing-button-icon="close"
             :show-trailing-button="modelValue !== ''"
@@ -30,7 +31,7 @@ export default {
             default: ''
         },
     },
-    emits: ['update'],
+    emits: ['update', 'enter'],
 
 	components: {
 		NcTextField,
@@ -44,6 +45,9 @@ export default {
 		},
         onInput(event) {
             this.$emit('update', event.target.value)
+        },
+        hitEnter() {
+            this.$emit('enter', '');
         }
 	}
 }

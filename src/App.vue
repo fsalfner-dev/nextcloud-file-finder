@@ -3,8 +3,8 @@
         <NcAppNavigation>
             <template #list>
                 <NcAppNavigationCaption name="File Search" isHeading />
-                <SearchInput :modelValue="search_criteria.content" @update="onContentUpdate" label="Content of the file" />
-                <SearchInput :modelValue="search_criteria.filename" @update="onFilenameUpdate" label="Filename (wildcards allowed)" />
+                <SearchInput :modelValue="search_criteria.content" @update="onContentUpdate" @enter="onSubmit" label="Content of the file" />
+                <SearchInput :modelValue="search_criteria.filename" @update="onFilenameUpdate" @enter="onSubmit" label="Filename (wildcards allowed)" />
                 <NcAppNavigationNew text="Search Files" @click="onSubmit" />
             </template>
         </NcAppNavigation>
