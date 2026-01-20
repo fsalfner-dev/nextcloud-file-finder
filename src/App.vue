@@ -123,6 +123,7 @@ export default {
                         highlights: file.highlights,
                         link: file.link,
                         icon_link: file.icon_link,
+                        modified: new Date(file.modified_at * 1000).toLocaleString(),
                     }));
 
                     // Update content state based on results

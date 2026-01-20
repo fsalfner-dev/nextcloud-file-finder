@@ -181,6 +181,7 @@ class FileFinderService  {
     private function buildHit($hit, $user) : ?array {
         $fileIdParts = explode(":", $hit['_id']);
         $title = $hit['_source']['title'];
+        $modification_ts = $hit['_source']['lastModified'];
         try {
             $fileId = $fileIdParts[1];
             $filePath = $hit['_source']['share_names'][$user];
@@ -206,6 +207,7 @@ class FileFinderService  {
                 'name' => $title,
                 'link' => $url,
                 'icon_link' => $mimeTypeIcon,
+                'modified_at' => $modification_ts,
                 'highlights' => (array_key_exists('highlight', $hit)) ? $hit['highlight'] : []
             ];
         } catch (\Exception $e) {
