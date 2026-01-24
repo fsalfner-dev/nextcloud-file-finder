@@ -97,7 +97,12 @@ class FileFinderService  {
         }
         
         if ((isset($filename) && !empty(trim($filename)))) {
-            $params['body']['query']['bool']['filter'][] = [ 'wildcard' => [ 'title.keyword' => $filename ]];
+            if (!str_starts_with($filename, '*')) {
+                $filename_searchterm = '*' . $filename;
+            } else {
+                $filename_searchterm = $filename;
+            }
+            $params['body']['query']['bool']['filter'][] = [ 'wildcard' => [ 'title.keyword' => $filename_searchterm ]];
         }
 //        return ['query' => $params];
         $response = $client->search($params);
