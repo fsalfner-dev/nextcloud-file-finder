@@ -107,7 +107,7 @@ export default {
         performSearch() {
             const url = generateUrl('/apps/filefinder/search');
             const params = {
-                content: this.search_criteria.content,
+                search_criteria: this.search_criteria,
                 filename: this.search_criteria.filename,
                 size: this.search_pagination.size,
                 page: this.search_pagination.page,

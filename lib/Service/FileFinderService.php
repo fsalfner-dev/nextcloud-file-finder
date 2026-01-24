@@ -63,7 +63,9 @@ class FileFinderService  {
         $this->mimeTypeDetector = $mimeTypeDetector;
 	}
 
-	public function searchFiles(?string $content, ?string $filename, int $page, int $size): array {
+	public function searchFiles(array $search_criteria, int $page, int $size): array {
+        $content = $search_criteria['content'];
+        $filename = $search_criteria['filename'];
         if ((!isset($content) || empty(trim($content))) && (!isset($filename) || empty(trim($filename)))) {
             throw new QueryException('Either content or filename needs to be provided');
         }

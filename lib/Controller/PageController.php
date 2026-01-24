@@ -68,9 +68,9 @@ class PageController extends Controller {
 	 */
 	#[NoAdminRequired]
 	#[FrontpageRoute(verb: 'GET', url: '/search')]
-	public function searchFiles(?string $content, ?string $filename, int $page, int $size): JSONResponse {
+	public function searchFiles(array $search_criteria, int $page, int $size): JSONResponse {
 		try {
-			$result = $this->fileFinderService->searchFiles($content, $filename, $page, $size);
+			$result = $this->fileFinderService->searchFiles($search_criteria, $page, $size);
 			return new JSONResponse($result);
 		} catch ( ConfigurationException $e ) {
 			return new JSONResponse([
