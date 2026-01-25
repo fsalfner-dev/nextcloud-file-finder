@@ -20,11 +20,17 @@
                 <div v-else-if="contentState === contentStates.SHOW_RESULTS" id="results-state">
                     <div id="searchresult">
                         <h3>Search Results</h3>
-                        <SearchFilelist :searchresult="search_result" :show_content="show_content_column"/>
+                        <SearchFilelist 
+                            :searchresult="search_result" 
+                            :show_content="show_content_column"
+                            :currentSort="search_sort"
+                            :currentSortOrder="search_sort_order"
+                            @update:sort="onSortUpdate"
+                            @update:sortOrder="onSortOrderUpdate"
+                        />
                     </div>
                     <div id="pagination">
                         <SearchPagination :searchresult="search_result" @update:page="onPageUpdate" @update:size="onSizeUpdate" />
-                        <SearchSort v-model="search_sort" :sortOrder="search_sort_order" @update:modelValue="onSortUpdate" @update:sortOrder="onSortOrderUpdate" />
                     </div>
                 </div>
             </div>
@@ -41,7 +47,6 @@ import NcAppContent from '@nextcloud/vue/dist/Components/NcAppContent.js'
 import SearchInput from './components/SearchInput.vue'
 import SearchFilelist from './components/SearchFilelist.vue'
 import SearchPagination from './components/SearchPagination.vue'
-import SearchSort from './components/SearchSort.vue'
 import { generateUrl } from '@nextcloud/router'
 import { showError } from '@nextcloud/dialogs'
 import axios from '@nextcloud/axios'
@@ -84,7 +89,6 @@ export default {
         SearchInput,
         SearchFilelist,
         SearchPagination,
-        SearchSort,
     },
     methods: {
         onContentUpdate(e) {
@@ -107,11 +111,15 @@ export default {
 
         onSortUpdate(e) {
             this.search_sort = e;
+            // Reset to first page when sorting changes
+            this.search_pagination.page = 0;
             this.performSearch();
         },
 
         onSortOrderUpdate(e) {
             this.search_sort_order = e;
+            // Reset to first page when sort order changes
+            this.search_pagination.page = 0;
             this.performSearch();
         },
 

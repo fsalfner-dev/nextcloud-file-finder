@@ -1,6 +1,60 @@
 <template>
     <table v-if="searchresult.files.length > 0" class="nc-table">
-        <thead><tr><th>File</th><th>Modified</th><th v-if="show_content">Content</th></tr></thead>
+        <thead>
+            <tr>
+                <th class="sortable-header">
+                    <span class="header-content">
+                        File
+                        <span class="sort-icons">
+                            <ChevronUp 
+                                :size="16" 
+                                :class="{ 'active': currentSort === 'path' && currentSortOrder === 'asc' }"
+                                @click.stop="handleSort('path', 'asc')"
+                            />
+                            <ChevronDown 
+                                :size="16" 
+                                :class="{ 'active': currentSort === 'path' && currentSortOrder === 'desc' }"
+                                @click.stop="handleSort('path', 'desc')"
+                            />
+                        </span>
+                    </span>
+                </th>
+                <th class="sortable-header">
+                    <span class="header-content">
+                        Modified
+                        <span class="sort-icons">
+                            <ChevronUp 
+                                :size="16" 
+                                :class="{ 'active': currentSort === 'modified' && currentSortOrder === 'asc' }"
+                                @click.stop="handleSort('modified', 'asc')"
+                            />
+                            <ChevronDown 
+                                :size="16" 
+                                :class="{ 'active': currentSort === 'modified' && currentSortOrder === 'desc' }"
+                                @click.stop="handleSort('modified', 'desc')"
+                            />
+                        </span>
+                    </span>
+                </th>
+                <th v-if="show_content" class="sortable-header">
+                    <span class="header-content">
+                        Content
+                        <span class="sort-icons">
+                            <ChevronUp 
+                                :size="16" 
+                                :class="{ 'active': currentSort === 'score' && currentSortOrder === 'asc' }"
+                                @click.stop="handleSort('score', 'asc')"
+                            />
+                            <ChevronDown 
+                                :size="16" 
+                                :class="{ 'active': currentSort === 'score' && currentSortOrder === 'desc' }"
+                                @click.stop="handleSort('score', 'desc')"
+                            />
+                        </span>
+                    </span>
+                </th>
+            </tr>
+        </thead>
         <tbody>
             <tr v-for="file in searchresult.files">
                 <td>
@@ -20,6 +74,8 @@
 <script>
 import { mdiFilePdfBox } from '@mdi/js'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
+import ChevronUp from 'vue-material-design-icons/ChevronUp.vue'
+import ChevronDown from 'vue-material-design-icons/ChevronDown.vue'
 
 export default {
     name: 'SearchFilelist',
@@ -28,8 +84,17 @@ export default {
         show_content: {
             type: Boolean,
             default: false
+        },
+        currentSort: {
+            type: String,
+            default: 'score'
+        },
+        currentSortOrder: {
+            type: String,
+            default: 'desc'
         }
     },
+    emits: ['update:sort', 'update:sortOrder'],
     setup() {
         return {
             mdiFilePdfBox,
@@ -38,8 +103,19 @@ export default {
 
 	components: {
         NcIconSvgWrapper,
+        ChevronUp,
+        ChevronDown,
         },
 	methods: {
+        handleSort(sortCriterion, sortOrder) {
+            // Set the sort criterion and order
+            if (this.currentSort !== sortCriterion) {
+                this.$emit('update:sort', sortCriterion);
+            }
+            if (this.currentSortOrder !== sortOrder) {
+                this.$emit('update:sortOrder', sortOrder);
+            }
+        }
 	}
 }
 </script>
@@ -53,6 +129,44 @@ export default {
 .nc-table th {
     padding: 8px 12px;
     font-weight: bold;
+}
+
+.sortable-header {
+    cursor: pointer;
+    user-select: none;
+    position: relative;
+}
+
+.sortable-header:hover {
+    background-color: var(--color-background-hover, rgba(0, 0, 0, 0.05));
+}
+
+.header-content {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.sort-icons {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-left: 4px;
+}
+
+.sort-icons svg {
+    opacity: 0.3;
+    transition: opacity 0.2s, color 0.2s;
+    cursor: pointer;
+}
+
+.sort-icons svg:hover {
+    opacity: 0.6;
+}
+
+.sort-icons .active {
+    opacity: 1;
+    color: var(--color-primary-element, #0082c9);
 }
 
 .nc-table td {
