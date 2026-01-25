@@ -1,6 +1,6 @@
 <template>
     <div class="search-sort">
-        <label for="sort-select">Sort by:</label>
+        <label for="sort-select" style="white-space: nowrap;">Sort by:</label>
         <select id="sort-select" v-model="selectedSort" @change="updateSort">
             <option value="score">Content match score</option>
             <option value="modified">Modification date</option>
