@@ -64,47 +64,24 @@ class FileFinderService  {
 	}
 
 	public function searchFiles(array $search_criteria, int $page, int $size): array {
-        $content = $search_criteria['content'];
-        $filename = $search_criteria['filename'];
-        if ((!isset($content) || empty(trim($content))) && (!isset($filename) || empty(trim($filename)))) {
-            throw new QueryException('Either content or filename needs to be provided');
-        }
 		$client = $this->buildClient();
         $index = $this->getElasticIndex();
         $user = $this->userSession->getUser()->getUID();
 
+        $query = $this->buildQuery($search_criteria, $user);
+        $highlighting = $this->addHighlighting($search_criteria);
         $params = [
             'index' => $index,
             'body' => [
                 'size' => $size,
                 'from' => $page * $size,
-                'query' => [
-                    'bool' => [
-                        'filter' => [
-                            [ 'regexp' => [ 'title.keyword' => '.+' ] ],
-                            [ 'exists' => [ 'field' => 'share_names.' . $user ]]
-                        ]
-                    ]
-                ]
+                'query' => $query,
             ]
         ];
-        if ((isset($content) && !empty(trim($content)))) {
-            $params['body']['query']['bool']['must'] = [ 'match' => [ 'content' => $content] ];
-            $params['body']['highlight'] = ['fields' => [ 
-                'content' => [ 
-                    'type' => 'plain',
-                    'fragmenter' => 'span']]];
+        if ($highlighting !== null) {
+            $params['body']['highlight'] = $highlighting;
         }
-        
-        if ((isset($filename) && !empty(trim($filename)))) {
-            if (!str_starts_with($filename, '*')) {
-                $filename_searchterm = '*' . $filename;
-            } else {
-                $filename_searchterm = $filename;
-            }
-            $params['body']['query']['bool']['filter'][] = [ 'wildcard' => [ 'title.keyword' => $filename_searchterm ]];
-        }
-//        return ['query' => $params];
+ //       return ['query' => $params];
         $response = $client->search($params);
         if ($response->getStatusCode() != 200) {
             throw new ClientException($response->getBody());
@@ -135,6 +112,46 @@ class FileFinderService  {
 			];
 	}
 
+    private function addHighlighting($search_criteria) : ?array {
+        $content = $search_criteria['content'];
+        if ((isset($content) && !empty(trim($content)))) {
+            return ['fields' => [ 
+                'content' => [ 
+                    'type' => 'plain',
+                    'fragmenter' => 'span']]];
+        } else {
+            return null;
+        }
+    }
+
+    private function buildQuery($search_criteria, $user) : array {
+        $content = $search_criteria['content'];
+        $filename = $search_criteria['filename'];
+        if ((!isset($content) || empty(trim($content))) && (!isset($filename) || empty(trim($filename)))) {
+            throw new QueryException('Either content or filename needs to be provided');
+        }
+        $query = [
+                    'bool' => [
+                        'filter' => [
+                            [ 'regexp' => [ 'title.keyword' => '.+' ] ],
+                            [ 'exists' => [ 'field' => 'share_names.' . $user ]]
+                        ]
+                    ]
+                ];
+        if ((isset($content) && !empty(trim($content)))) {
+            $query['bool']['must'] = [ 'match' => [ 'content' => $content] ];
+        }
+        
+        if ((isset($filename) && !empty(trim($filename)))) {
+            if (!str_starts_with($filename, '*')) {
+                $filename_searchterm = '*' . $filename;
+            } else {
+                $filename_searchterm = $filename;
+            }
+            $query['bool']['filter'][] = [ 'wildcard' => [ 'title.keyword' => $filename_searchterm ]];
+        }
+        return $query;
+    }
 
     private function buildClient() : Client {
 
