@@ -135,7 +135,7 @@ export default {
                     this.show_content_column = this.search_criteria.content !== '';
                 })
                 .catch((error) => {
-                    showError('Search request failed: ' + error.response.data.error_message);
+                    showError(error.response.data.error_message);
                     console.error(error);
                 });
         }
