@@ -24,6 +24,7 @@
                     </div>
                     <div id="pagination">
                         <SearchPagination :searchresult="search_result" @update:page="onPageUpdate" @update:size="onSizeUpdate" />
+                        <SearchSort v-model="search_sort" @update:modelValue="onSortUpdate" />
                     </div>
                 </div>
             </div>
@@ -40,6 +41,7 @@ import NcAppContent from '@nextcloud/vue/dist/Components/NcAppContent.js'
 import SearchInput from './components/SearchInput.vue'
 import SearchFilelist from './components/SearchFilelist.vue'
 import SearchPagination from './components/SearchPagination.vue'
+import SearchSort from './components/SearchSort.vue'
 import { generateUrl } from '@nextcloud/router'
 import { showError } from '@nextcloud/dialogs'
 import axios from '@nextcloud/axios'
@@ -56,6 +58,7 @@ export default {
                 page: 0,
                 size: 10,
             },
+            search_sort: 'score',
             search_result: {
                 hits: null,
                 page: 0,
@@ -80,6 +83,7 @@ export default {
         SearchInput,
         SearchFilelist,
         SearchPagination,
+        SearchSort,
     },
     methods: {
         onContentUpdate(e) {
@@ -100,6 +104,11 @@ export default {
             this.performSearch();
         },
 
+        onSortUpdate(e) {
+            this.search_sort = e;
+            this.performSearch();
+        },
+
         onSubmit() {
             this.performSearch();
         },
@@ -111,6 +120,7 @@ export default {
                 filename: this.search_criteria.filename,
                 size: this.search_pagination.size,
                 page: this.search_pagination.page,
+                sort: this.search_sort,
             };
             axios.get(url, { params: params })
                 .then((response) => {
@@ -168,5 +178,7 @@ export default {
     margin-bottom: 20px;
     display: flex;
     justify-content: center;
+    align-items: center;
+    gap: 16px;
 }
 </style>

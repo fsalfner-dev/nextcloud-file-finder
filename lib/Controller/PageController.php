@@ -64,13 +64,14 @@ class PageController extends Controller {
 	 * @param string $content - the search term for searching the content
 	 * @param string $filename - the search term for the filename
 	 * @param int $page - the page number 
+	 * @param string $sort - the sort criterion (score, modified, path)
 	 * @return JSONResponse
 	 */
 	#[NoAdminRequired]
 	#[FrontpageRoute(verb: 'GET', url: '/search')]
-	public function searchFiles(array $search_criteria, int $page, int $size): JSONResponse {
+	public function searchFiles(array $search_criteria, int $page, int $size, string $sort = 'score'): JSONResponse {
 		try {
-			$result = $this->fileFinderService->searchFiles($search_criteria, $page, $size);
+			$result = $this->fileFinderService->searchFiles($search_criteria, $page, $size, $sort);
 			return new JSONResponse($result);
 		} catch ( ConfigurationException $e ) {
 			return new JSONResponse([

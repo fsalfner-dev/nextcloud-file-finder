@@ -63,13 +63,14 @@ class FileFinderService  {
         $this->mimeTypeDetector = $mimeTypeDetector;
 	}
 
-	public function searchFiles(array $search_criteria, int $page, int $size): array {
+	public function searchFiles(array $search_criteria, int $page, int $size, string $sort = 'score'): array {
 		$client = $this->buildClient();
         $index = $this->getElasticIndex();
         $user = $this->userSession->getUser()->getUID();
 
         $query = $this->buildQuery($search_criteria, $user);
         $highlighting = $this->addHighlighting($search_criteria);
+        $sortClause = $this->buildSort($sort);
         $params = [
             'index' => $index,
             'body' => [
@@ -80,6 +81,9 @@ class FileFinderService  {
         ];
         if ($highlighting !== null) {
             $params['body']['highlight'] = $highlighting;
+        }
+        if ($sortClause !== null) {
+            $params['body']['sort'] = $sortClause;
         }
  //       return ['query' => $params];
         $response = $client->search($params);
@@ -151,6 +155,28 @@ class FileFinderService  {
             $query['bool']['filter'][] = [ 'wildcard' => [ 'title.keyword' => $filename_searchterm ]];
         }
         return $query;
+    }
+
+    private function buildSort(string $sort): ?array {
+        switch ($sort) {
+            case 'score':
+                // Default Elasticsearch relevance score (no explicit sort needed)
+                return null;
+            case 'modified':
+                // Sort by modification date (descending - newest first)
+                return [
+                    ['lastModified' => ['order' => 'desc']],
+                    '_score' // Secondary sort by relevance
+                ];
+            case 'path':
+                // Sort by file path (ascending)
+                return [
+                    ['title.keyword' => ['order' => 'asc']],
+                    '_score' // Secondary sort by relevance
+                ];
+            default:
+                return null;
+        }
     }
 
     private function buildClient() : Client {
