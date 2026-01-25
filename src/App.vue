@@ -5,6 +5,7 @@
                 <NcAppNavigationCaption name="File Search" isHeading />
                 <SearchInput :modelValue="search_criteria.content" @update="onContentUpdate" @enter="onSubmit" label="Content of the file" />
                 <SearchInput :modelValue="search_criteria.filename" @update="onFilenameUpdate" @enter="onSubmit" label="Filename (wildcards allowed)" />
+                <FileTypeFilter :modelValue="search_criteria.file_type" @update:modelValue="onFileTypeUpdate" />
                 <NcAppNavigationNew text="Search Files" @click="onSubmit" />
             </template>
         </NcAppNavigation>
@@ -47,6 +48,7 @@ import NcAppContent from '@nextcloud/vue/dist/Components/NcAppContent.js'
 import SearchInput from './components/SearchInput.vue'
 import SearchFilelist from './components/SearchFilelist.vue'
 import SearchPagination from './components/SearchPagination.vue'
+import FileTypeFilter from './components/FileTypeFilter.vue'
 import { generateUrl } from '@nextcloud/router'
 import { showError } from '@nextcloud/dialogs'
 import axios from '@nextcloud/axios'
@@ -58,6 +60,7 @@ export default {
             search_criteria: {
                 content: '',
                 filename: '',
+                file_type: [],
             },
             search_pagination: {
                 page: 0,
@@ -89,6 +92,7 @@ export default {
         SearchInput,
         SearchFilelist,
         SearchPagination,
+        FileTypeFilter,
     },
     methods: {
         onContentUpdate(e) {
@@ -97,6 +101,10 @@ export default {
 
         onFilenameUpdate(e) {
             this.search_criteria.filename = e;
+        },
+
+        onFileTypeUpdate(fileType) {
+            this.search_criteria.file_type = fileType;
         },
 
         onPageUpdate(e) {

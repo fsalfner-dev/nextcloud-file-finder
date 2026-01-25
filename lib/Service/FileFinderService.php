@@ -24,6 +24,16 @@ use OCA\FileFinder\Exceptions\QueryException;
 
 class FileFinderService  {
 
+    /** @var array<string, string[]> */
+    private const FILE_TYPE_EXTENSIONS = [
+        'images' => ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg', 'ico', 'heic'],
+        'music' => ['mp3', 'ogg', 'flac', 'wav', 'm4a', 'aac', 'wma'],
+        'pdfs' => ['pdf'],
+        'spreadsheets' => ['xls', 'xlsx', 'ods', 'csv', 'numbers'],
+        'documents' => ['doc', 'docx', 'odt', 'txt', 'rtf', 'md'],
+        'videos' => ['mp4', 'webm', 'mkv', 'avi', 'mov', 'wmv'],
+    ];
+
     /**
 	 * @var IAppConfig
 	 */
@@ -85,7 +95,7 @@ class FileFinderService  {
         if ($sortClause !== null) {
             $params['body']['sort'] = $sortClause;
         }
- //       return ['query' => $params];
+ //      return ['query' => $params];
         $response = $client->search($params);
         if ($response->getStatusCode() != 200) {
             throw new ClientException($response->getBody());
@@ -129,32 +139,63 @@ class FileFinderService  {
     }
 
     private function buildQuery($search_criteria, $user) : array {
-        $content = $search_criteria['content'];
-        $filename = $search_criteria['filename'];
-        if ((!isset($content) || empty(trim($content))) && (!isset($filename) || empty(trim($filename)))) {
+        $content = $search_criteria['content'] ?? '';
+        $filename = $search_criteria['filename'] ?? '';
+        if ((!isset($search_criteria['content']) || trim((string) $content) === '') && (!isset($search_criteria['filename']) || trim((string) $filename) === '')) {
             throw new QueryException('Either content or filename needs to be provided');
         }
         $query = [
-                    'bool' => [
-                        'filter' => [
-                            [ 'regexp' => [ 'title.keyword' => '.+' ] ],
-                            [ 'exists' => [ 'field' => 'share_names.' . $user ]]
-                        ]
-                    ]
-                ];
-        if ((isset($content) && !empty(trim($content)))) {
-            $query['bool']['must'] = [ 'match' => [ 'content' => $content] ];
+            'bool' => [
+                'filter' => [
+                    [ 'regexp' => [ 'title.keyword' => '.+' ] ],
+                    [ 'exists' => [ 'field' => 'share_names.' . $user ]]
+                ]
+            ]
+        ];
+        if (isset($search_criteria['content']) && trim((string) $content) !== '') {
+            $query['bool']['must'] = [ 'match' => [ 'content' => $content ] ];
         }
-        
-        if ((isset($filename) && !empty(trim($filename)))) {
-            if (!str_starts_with($filename, '*')) {
-                $filename_searchterm = '*' . $filename;
-            } else {
-                $filename_searchterm = $filename;
-            }
-            $query['bool']['filter'][] = [ 'wildcard' => [ 'title.keyword' => $filename_searchterm ]];
+        if (isset($search_criteria['filename']) && trim((string) $filename) !== '') {
+            $filename_searchterm = !str_starts_with($filename, '*') ? '*' . $filename : $filename;
+            $query['bool']['filter'][] = [ 'wildcard' => [ 'title.keyword' => $filename_searchterm ] ];
+        }
+        $extensions = $this->getMergedExtensionsForTypes($search_criteria['file_type'] ?? null);
+        if ($extensions !== []) {
+            $pattern = '.*\.(' . implode('|', $extensions) . ')';
+            $query['bool']['filter'][] = [ 'regexp' => [ 'title.keyword' => [ 'value' => $pattern, 'case_insensitive' => true ] ] ];
         }
         return $query;
+    }
+
+    /**
+     * Returns extensions for a single known type, or empty array for unknown.
+     *
+     * @return string[]
+     */
+    private function getExtensionsForType(string $type): array {
+        return self::FILE_TYPE_EXTENSIONS[$type] ?? [];
+    }
+
+    /**
+     * Merges extensions for all given types (OR semantics). Unknown types are ignored.
+     *
+     * @param mixed $fileTypes array of type keys, or null/empty
+     * @return string[] deduplicated, lowercase extensions
+     */
+    private function getMergedExtensionsForTypes($fileTypes): array {
+        if (!is_array($fileTypes) || $fileTypes === []) {
+            return [];
+        }
+        $merged = [];
+        foreach ($fileTypes as $t) {
+            if (!is_string($t)) {
+                continue;
+            }
+            foreach ($this->getExtensionsForType($t) as $ext) {
+                $merged[$ext] = true;
+            }
+        }
+        return array_keys($merged);
     }
 
     private function buildSort(string $sort, string $sort_order = 'desc'): ?array {
