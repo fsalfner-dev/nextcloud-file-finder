@@ -63,14 +63,14 @@ class FileFinderService  {
         $this->mimeTypeDetector = $mimeTypeDetector;
 	}
 
-	public function searchFiles(array $search_criteria, int $page, int $size, string $sort = 'score'): array {
+	public function searchFiles(array $search_criteria, int $page, int $size, string $sort = 'score', string $sort_order = 'desc'): array {
 		$client = $this->buildClient();
         $index = $this->getElasticIndex();
         $user = $this->userSession->getUser()->getUID();
 
         $query = $this->buildQuery($search_criteria, $user);
         $highlighting = $this->addHighlighting($search_criteria);
-        $sortClause = $this->buildSort($sort);
+        $sortClause = $this->buildSort($sort, $sort_order);
         $params = [
             'index' => $index,
             'body' => [
@@ -157,21 +157,24 @@ class FileFinderService  {
         return $query;
     }
 
-    private function buildSort(string $sort): ?array {
+    private function buildSort(string $sort, string $sort_order = 'desc'): ?array {
+        // Validate sort_order
+        $order = ($sort_order === 'asc') ? 'asc' : 'desc';
+        
         switch ($sort) {
             case 'score':
                 // Default Elasticsearch relevance score (no explicit sort needed)
                 return null;
             case 'modified':
-                // Sort by modification date (descending - newest first)
+                // Sort by modification date
                 return [
-                    ['lastModified' => ['order' => 'desc']],
+                    ['lastModified' => ['order' => $order]],
                     '_score' // Secondary sort by relevance
                 ];
             case 'path':
-                // Sort by file path (ascending)
+                // Sort by file path
                 return [
-                    ['title.keyword' => ['order' => 'asc']],
+                    ['title.keyword' => ['order' => $order]],
                     '_score' // Secondary sort by relevance
                 ];
             default:

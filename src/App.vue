@@ -24,7 +24,7 @@
                     </div>
                     <div id="pagination">
                         <SearchPagination :searchresult="search_result" @update:page="onPageUpdate" @update:size="onSizeUpdate" />
-                        <SearchSort v-model="search_sort" @update:modelValue="onSortUpdate" />
+                        <SearchSort v-model="search_sort" :sortOrder="search_sort_order" @update:modelValue="onSortUpdate" @update:sortOrder="onSortOrderUpdate" />
                     </div>
                 </div>
             </div>
@@ -59,6 +59,7 @@ export default {
                 size: 10,
             },
             search_sort: 'score',
+            search_sort_order: 'desc',
             search_result: {
                 hits: null,
                 page: 0,
@@ -109,6 +110,11 @@ export default {
             this.performSearch();
         },
 
+        onSortOrderUpdate(e) {
+            this.search_sort_order = e;
+            this.performSearch();
+        },
+
         onSubmit() {
             this.performSearch();
         },
@@ -121,6 +127,7 @@ export default {
                 size: this.search_pagination.size,
                 page: this.search_pagination.page,
                 sort: this.search_sort,
+                sort_order: this.search_sort_order,
             };
             axios.get(url, { params: params })
                 .then((response) => {

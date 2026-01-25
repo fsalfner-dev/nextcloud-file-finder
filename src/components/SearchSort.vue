@@ -6,6 +6,11 @@
             <option value="modified">Modification date</option>
             <option value="path">File path</option>
         </select>
+        <label for="sort-order-select" v-if="selectedSort !== 'score'">Order:</label>
+        <select id="sort-order-select" v-if="selectedSort !== 'score'" v-model="selectedSortOrder" @change="updateSortOrder">
+            <option value="asc">Ascending</option>
+            <option value="desc">Descending</option>
+        </select>
     </div>
 </template>
 
@@ -17,21 +22,32 @@ export default {
             type: String,
             default: 'score'
         },
+        sortOrder: {
+            type: String,
+            default: 'desc'
+        },
     },
-    emits: ['update:modelValue'],
+    emits: ['update:modelValue', 'update:sortOrder'],
     data() {
         return {
             selectedSort: this.modelValue,
+            selectedSortOrder: this.sortOrder,
         }
     },
     watch: {
         modelValue(newValue) {
             this.selectedSort = newValue;
+        },
+        sortOrder(newValue) {
+            this.selectedSortOrder = newValue;
         }
     },
     methods: {
         updateSort() {
             this.$emit('update:modelValue', this.selectedSort);
+        },
+        updateSortOrder() {
+            this.$emit('update:sortOrder', this.selectedSortOrder);
         },
     },
 }
@@ -44,7 +60,8 @@ export default {
     gap: 8px;
 }
 
-#sort-select {
+#sort-select,
+#sort-order-select {
     padding: 4px 8px;
     border: 1px solid var(--color-border);
     border-radius: var(--border-radius);
@@ -54,11 +71,13 @@ export default {
     cursor: pointer;
 }
 
-#sort-select:hover {
+#sort-select:hover,
+#sort-order-select:hover {
     border-color: var(--color-primary-element);
 }
 
-#sort-select:focus {
+#sort-select:focus,
+#sort-order-select:focus {
     outline: none;
     border-color: var(--color-primary-element);
 }
