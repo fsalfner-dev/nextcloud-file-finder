@@ -7,13 +7,13 @@
                         File
                         <span class="sort-icons">
                             <ChevronUp 
-                                :size="16" 
-                                :class="{ 'active': currentSort === 'path' && currentSortOrder === 'asc' }"
+                                :size="18" 
+                                :class="currentSort === 'path' && currentSortOrder === 'asc' ? 'active' : 'inactive'"
                                 @click.stop="handleSort('path', 'asc')"
                             />
                             <ChevronDown 
-                                :size="16" 
-                                :class="{ 'active': currentSort === 'path' && currentSortOrder === 'desc' }"
+                                :size="18" 
+                                :class="currentSort === 'path' && currentSortOrder === 'desc' ? 'active' : 'inactive'"
                                 @click.stop="handleSort('path', 'desc')"
                             />
                         </span>
@@ -24,13 +24,13 @@
                         Modified
                         <span class="sort-icons">
                             <ChevronUp 
-                                :size="16" 
-                                :class="{ 'active': currentSort === 'modified' && currentSortOrder === 'asc' }"
+                                :size="18" 
+                                :class="currentSort === 'modified' && currentSortOrder === 'asc' ? 'active' : 'inactive'"
                                 @click.stop="handleSort('modified', 'asc')"
                             />
                             <ChevronDown 
-                                :size="16" 
-                                :class="{ 'active': currentSort === 'modified' && currentSortOrder === 'desc' }"
+                                :size="18" 
+                                :class="currentSort === 'modified' && currentSortOrder === 'desc' ? 'active' : 'inactive'"
                                 @click.stop="handleSort('modified', 'desc')"
                             />
                         </span>
@@ -40,14 +40,9 @@
                     <span class="header-content">
                         Content
                         <span class="sort-icons">
-                            <ChevronUp 
-                                :size="16" 
-                                :class="{ 'active': currentSort === 'score' && currentSortOrder === 'asc' }"
-                                @click.stop="handleSort('score', 'asc')"
-                            />
                             <ChevronDown 
-                                :size="16" 
-                                :class="{ 'active': currentSort === 'score' && currentSortOrder === 'desc' }"
+                                :size="18" 
+                                :class="currentSort === 'score' && currentSortOrder === 'desc' ? 'active' : 'inactive'"
                                 @click.stop="handleSort('score', 'desc')"
                             />
                         </span>
@@ -149,18 +144,16 @@ export default {
 
 .sort-icons {
     display: flex;
-    flex-direction: column;
-    gap: 2px;
+    flex-direction: row;
+    gap: 0px;
     margin-left: 4px;
 }
 
-.sort-icons svg {
+.sort-icons .inactive {
     opacity: 0.3;
-    transition: opacity 0.2s, color 0.2s;
-    cursor: pointer;
 }
 
-.sort-icons svg:hover {
+.sort-icons .inactive:hover {
     opacity: 0.6;
 }
 
