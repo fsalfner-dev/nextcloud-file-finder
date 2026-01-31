@@ -95,7 +95,7 @@ class FileFinderService  {
         if ($sortClause !== null) {
             $params['body']['sort'] = $sortClause;
         }
- //      return ['query' => $params];
+//       return ['query' => $params];
         $response = $client->search($params);
         if ($response->getStatusCode() != 200) {
             throw new ClientException($response->getBody());
@@ -159,7 +159,7 @@ class FileFinderService  {
             $filename_searchterm = !str_starts_with($filename, '*') ? '*' . $filename : $filename;
             $query['bool']['filter'][] = [ 'wildcard' => [ 'title.keyword' => $filename_searchterm ] ];
         }
-        $extensions = $this->getMergedExtensionsForTypes($search_criteria['file_type'] ?? null);
+        $extensions = $this->getMergedExtensionsForTypes($search_criteria['file_types'] ?? null);
         if ($extensions !== []) {
             $pattern = '.*\.(' . implode('|', $extensions) . ')';
             $query['bool']['filter'][] = [ 'regexp' => [ 'title.keyword' => [ 'value' => $pattern, 'case_insensitive' => true ] ] ];

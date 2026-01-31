@@ -2,10 +2,11 @@
     <NcContent app-name="filefinder">
         <NcAppNavigation>
             <template #list>
-                <NcAppNavigationCaption name="File Search" isHeading />
+                <NcAppNavigationCaption name="Search for" is-heading />
                 <SearchInput :modelValue="search_criteria.content" @update="onContentUpdate" @enter="onSubmit" label="Content of the file" />
                 <SearchInput :modelValue="search_criteria.filename" @update="onFilenameUpdate" @enter="onSubmit" label="Filename (wildcards allowed)" />
-                <FileTypeFilter :modelValue="search_criteria.file_type" @update:modelValue="onFileTypeUpdate" />
+                <NcAppNavigationCaption name="Filter File Types" is-heading />
+                <FileTypeFilter :modelValue="search_criteria.file_types" @update:model-value="onFileTypeSelect" />
                 <NcAppNavigationNew text="Search Files" @click="onSubmit" />
             </template>
         </NcAppNavigation>
@@ -20,7 +21,7 @@
                 </div>
                 <div v-else-if="contentState === contentStates.SHOW_RESULTS" id="results-state">
                     <div id="searchresult">
-                        <h3>Search Results</h3>
+                        <h3>Search Result</h3>
                         <SearchFilelist 
                             :searchresult="search_result" 
                             :show_content="show_content_column"
@@ -60,7 +61,7 @@ export default {
             search_criteria: {
                 content: '',
                 filename: '',
-                file_type: [],
+                file_types: [],
             },
             search_pagination: {
                 page: 0,
@@ -103,8 +104,8 @@ export default {
             this.search_criteria.filename = e;
         },
 
-        onFileTypeUpdate(fileType) {
-            this.search_criteria.file_type = fileType;
+        onFileTypeSelect(e) {
+            this.search_criteria.file_types = e;
         },
 
         onPageUpdate(e) {
@@ -119,14 +120,12 @@ export default {
 
         onSortUpdate(e) {
             this.search_sort = e;
-            // Reset to first page when sorting changes
             this.search_pagination.page = 0;
             this.performSearch();
         },
 
         onSortOrderUpdate(e) {
             this.search_sort_order = e;
-            // Reset to first page when sort order changes
             this.search_pagination.page = 0;
             this.performSearch();
         },
@@ -137,9 +136,12 @@ export default {
 
         performSearch() {
             const url = generateUrl('/apps/filefinder/search');
+            if ((this.search_criteria.content === '') && (this.search_sort === 'score')){
+                this.search_sort = 'path';
+                this.search_sort_order = 'asc';
+            }
             const params = {
                 search_criteria: this.search_criteria,
-                filename: this.search_criteria.filename,
                 size: this.search_pagination.size,
                 page: this.search_pagination.page,
                 sort: this.search_sort,
