@@ -10,32 +10,34 @@
                 <NcAppNavigationNew text="Search Files" @click="onSubmit" />
             </template>
         </NcAppNavigation>
-        <NcAppContent pageHeading="Search Results">
-            <div id="maincontent">
-                <div v-if="contentState === contentStates.INITIAL" id="initial-state">
-                    <p>Start a search by entering criteria in the navigation panel.</p>
-                </div>
-                <div v-else-if="contentState === contentStates.NO_RESULTS" id="no-results-state">
-                    <h3>Search Results</h3>
-                    <p>No files could be found matching your search criteria.</p>
-                </div>
-                <div v-else-if="contentState === contentStates.SHOW_RESULTS" id="results-state">
-                    <div id="searchresult">
-                        <h3>Search Result</h3>
-                        <SearchFilelist 
-                            :searchresult="search_result" 
-                            :show_content="show_content_column"
-                            :currentSort="search_sort"
-                            :currentSortOrder="search_sort_order"
-                            @update:sort="onSortUpdate"
-                            @update:sortOrder="onSortOrderUpdate"
-                        />
+        <NcAppContent>
+            <template>
+                <div id="maincontent">
+                    <div v-if="contentState === contentStates.INITIAL" id="initial-state">
+                        <p>Start a search by entering criteria in the navigation panel.</p>
                     </div>
-                    <div id="pagination">
-                        <SearchPagination :searchresult="search_result" @update:page="onPageUpdate" @update:size="onSizeUpdate" />
+                    <div v-else-if="contentState === contentStates.NO_RESULTS" id="no-results-state">
+                        <h3>Search Results</h3>
+                        <p>No files could be found matching your search criteria.</p>
+                    </div>
+                    <div v-else-if="contentState === contentStates.SHOW_RESULTS" id="results-state">
+                        <div id="searchresult">
+                            <h3>Search Result</h3>
+                            <SearchFilelist 
+                                :searchresult="search_result" 
+                                :show_content="show_content_column"
+                                :currentSort="search_sort"
+                                :currentSortOrder="search_sort_order"
+                                @update:sort="onSortUpdate"
+                                @update:sortOrder="onSortOrderUpdate"
+                            />
+                        </div>
+                        <div id="pagination">
+                            <SearchPagination :searchresult="search_result" @update:page="onPageUpdate" @update:size="onSizeUpdate" />
+                        </div>
                     </div>
                 </div>
-            </div>
+            </template>
         </NcAppContent>
     </NcContent>
 </template>
