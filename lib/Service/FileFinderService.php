@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace OCA\FileFinder\Service;
 
+use DateTime;
 use OCP\IAppConfig;
 use OCP\IURLGenerator;
 use OCP\Files\File;
@@ -144,6 +145,8 @@ class FileFinderService  {
         if ((!isset($search_criteria['content']) || trim((string) $content) === '') && (!isset($search_criteria['filename']) || trim((string) $filename) === '')) {
             throw new QueryException('Either content or filename needs to be provided');
         }
+
+        // base query to make sure only documents that the user can see are returned
         $query = [
             'bool' => [
                 'filter' => [
@@ -152,17 +155,50 @@ class FileFinderService  {
                 ]
             ]
         ];
+
+        // extend query to find matches based on file content
         if (isset($search_criteria['content']) && trim((string) $content) !== '') {
             $query['bool']['must'] = [ 'match' => [ 'content' => $content ] ];
         }
+
+        // extend query to only return files matching the filename wildcard
         if (isset($search_criteria['filename']) && trim((string) $filename) !== '') {
+            // title.keyword always contains the full path. Hence a query "Lease*.pdf" would only
+            // match for documents in the root directory. To also return documents from 
+            // subfolders, we make sure that there is an asterisk at the beginning to account for 
+            // the directory name 
             $filename_searchterm = !str_starts_with($filename, '*') ? '*' . $filename : $filename;
             $query['bool']['filter'][] = [ 'wildcard' => [ 'title.keyword' => $filename_searchterm ] ];
         }
+
+        // extend the query to only match documents for the specified file types (multi-selection allowed)
+        // file type matching is performed based on file extensions not on mime-types, since the 
+        // mime-types in Elasticsearch are too unreliable
         $extensions = $this->getMergedExtensionsForTypes($search_criteria['file_types'] ?? null);
         if ($extensions !== []) {
             $pattern = '.*\.(' . implode('|', $extensions) . ')';
             $query['bool']['filter'][] = [ 'regexp' => [ 'title.keyword' => [ 'value' => $pattern, 'case_insensitive' => true ] ] ];
+        }
+
+        // extend the query to only return files where the modification date matches the
+        // provided dates in before_date and after_date
+        if (isset($search_criteria['before_date'])) {
+            try {
+                $before_date = new DateTime($search_criteria['before_date']);
+                $before_seconds = $before_date->getTimestamp();
+            } catch (Exception $e) {
+                throw new QueryException('invalid before date provided');
+            }
+            $query['bool']['filter'][] = [ 'range' => ['lastModified' => [ 'lt' => $before_seconds ] ] ];
+        }
+        if (isset($search_criteria['after_date'])) {
+            try {
+                $after_date = new DateTime($search_criteria['after_date']);
+                $after_seconds = $after_date->getTimestamp();
+            } catch (Exception $e) {
+                throw new QueryException('invalid after date provided');
+            }
+            $query['bool']['filter'][] = [ 'range' => ['lastModified' => [ 'gt' => $after_seconds ] ] ];
         }
         return $query;
     }

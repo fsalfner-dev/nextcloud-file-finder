@@ -5,8 +5,11 @@
                 <NcAppNavigationCaption name="Search for" is-heading />
                 <SearchInput :modelValue="search_criteria.content" @update="onContentUpdate" @enter="onSubmit" label="Content of the file" />
                 <SearchInput :modelValue="search_criteria.filename" @update="onFilenameUpdate" @enter="onSubmit" label="Filename (wildcards allowed)" />
-                <NcAppNavigationCaption name="Filter File Types" is-heading />
+                <NcAppNavigationCaption name="File Type Filter" is-heading />
                 <FileTypeFilter :modelValue="search_criteria.file_types" @update:model-value="onFileTypeSelect" />
+                <NcAppNavigationCaption name="Date Filter" is-heading />
+                <DateFilter :modelValue="search_criteria.after_date" @update:model-value="onAfterDateSelect" placeholder="Files modified after"/>
+                <DateFilter :modelValue="search_criteria.before_date" @update:model-value="onBeforeDateSelect" placeholder="Files modified before"/>
                 <NcAppNavigationNew text="Search Files" @click="onSubmit" />
             </template>
         </NcAppNavigation>
@@ -51,6 +54,7 @@ import NcAppContent from '@nextcloud/vue/dist/Components/NcAppContent.js'
 import SearchInput from './components/SearchInput.vue'
 import SearchFilelist from './components/SearchFilelist.vue'
 import SearchPagination from './components/SearchPagination.vue'
+import DateFilter from './components/DateFilter.vue'
 import FileTypeFilter from './components/FileTypeFilter.vue'
 import { generateUrl } from '@nextcloud/router'
 import { showError } from '@nextcloud/dialogs'
@@ -64,6 +68,8 @@ export default {
                 content: '',
                 filename: '',
                 file_types: [],
+                after_date: null,
+                before_date: null,
             },
             search_pagination: {
                 page: 0,
@@ -96,6 +102,7 @@ export default {
         SearchFilelist,
         SearchPagination,
         FileTypeFilter,
+        DateFilter,
     },
     methods: {
         onContentUpdate(e) {
@@ -108,6 +115,14 @@ export default {
 
         onFileTypeSelect(e) {
             this.search_criteria.file_types = e;
+        },
+
+        onAfterDateSelect(e) {
+            this.search_criteria.after_date = e;
+        },
+
+        onBeforeDateSelect(e) {
+            this.search_criteria.before_date = e;
         },
 
         onPageUpdate(e) {
