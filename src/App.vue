@@ -10,6 +10,8 @@
                 <NcAppNavigationCaption name="Date Filter" is-heading />
                 <DateFilter :modelValue="search_criteria.after_date" @update:model-value="onAfterDateSelect" placeholder="Files modified after"/>
                 <DateFilter :modelValue="search_criteria.before_date" @update:model-value="onBeforeDateSelect" placeholder="Files modified before"/>
+                <NcAppNavigationCaption name="Exclude Folders" is-heading />
+                <ExcludeFoldersFilter :modelValue="search_criteria.exclude_folders" @update:model-value="onExcludeFolderUpdate" />
                 <NcAppNavigationNew text="Search Files" @click="onSubmit" />
             </template>
         </NcAppNavigation>
@@ -33,6 +35,7 @@
                                 :currentSortOrder="search_sort_order"
                                 @update:sort="onSortUpdate"
                                 @update:sortOrder="onSortOrderUpdate"
+                                @excludeFolder="addExcludedFolder"
                             />
                         </div>
                         <div id="pagination">
@@ -57,8 +60,9 @@ import SearchPagination from './components/SearchPagination.vue'
 import DateFilter from './components/DateFilter.vue'
 import FileTypeFilter from './components/FileTypeFilter.vue'
 import { generateUrl } from '@nextcloud/router'
-import { showError } from '@nextcloud/dialogs'
+import { showError, showInfo, showSuccess } from '@nextcloud/dialogs'
 import axios from '@nextcloud/axios'
+import ExcludeFoldersFilter from './components/ExcludeFoldersFilter.vue'
 
 export default {
     name: 'App',
@@ -70,6 +74,7 @@ export default {
                 file_types: [],
                 after_date: null,
                 before_date: null,
+                exclude_folders: [],
             },
             search_pagination: {
                 page: 0,
@@ -103,6 +108,7 @@ export default {
         SearchPagination,
         FileTypeFilter,
         DateFilter,
+        ExcludeFoldersFilter,
     },
     methods: {
         onContentUpdate(e) {
@@ -125,6 +131,10 @@ export default {
             this.search_criteria.before_date = e;
         },
 
+        onExcludeFolderUpdate(e) {
+            this.search_criteria.exclude_folders = e;
+        },
+
         onPageUpdate(e) {
             this.search_pagination.page = e;
             this.performSearch();
@@ -145,6 +155,20 @@ export default {
             this.search_sort_order = e;
             this.search_pagination.page = 0;
             this.performSearch();
+        },
+
+        addExcludedFolder(newpath) {
+            // check if the new path is more specific than an existing one
+            if (this.search_criteria.exclude_folders.filter((e) => newpath.startsWith(e)).length > 0) {
+                showInfo('Path is already excluded by other excluded folders');
+            } else {
+                // remove already existing paths that are more specific (subfolders) of new path
+                var cleaned_folders = this.search_criteria.exclude_folders.filter((el) => !el.startsWith(newpath));
+
+                cleaned_folders.push(newpath);
+                this.search_criteria.exclude_folders = cleaned_folders;
+                showSuccess('Path added to excluded folders');
+            }
         },
 
         onSubmit() {

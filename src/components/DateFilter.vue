@@ -20,7 +20,6 @@
 import NcDateTimePicker from '@nextcloud/vue/components/NcDateTimePicker'
 import NcActions from '@nextcloud/vue/components/NcActions'
 import NcActionButton from '@nextcloud/vue/components/NcActionButton'
-import IconPlus from 'vue-material-design-icons/Plus.vue'
 import Close from 'vue-material-design-icons/Close.vue'
 export default {
     name: 'DateFilter',

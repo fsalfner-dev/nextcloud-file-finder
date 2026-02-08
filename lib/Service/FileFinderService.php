@@ -200,6 +200,18 @@ class FileFinderService  {
             }
             $query['bool']['filter'][] = [ 'range' => ['lastModified' => [ 'gt' => $after_seconds ] ] ];
         }
+
+        // extend the query to exclude files and folders below the provided list of excluded
+        // folders
+        if (isset($search_criteria['exclude_folders']) && is_array($search_criteria['exclude_folders'])) {
+            $query['bool']['must_not'] = [];
+            foreach ($search_criteria['exclude_folders'] as $folder) {
+                if (!is_string($folder)) {
+                    continue;
+                }
+                $query['bool']['must_not'][] = ['prefix' => [ 'title.keyword' => ['value' => $folder]]];
+            }
+        }
         return $query;
     }
 
