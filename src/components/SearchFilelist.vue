@@ -66,39 +66,7 @@
                 <td>{{ file.modified }}</td>
                 <td v-if="show_content"><ul><li v-for="highlight in file.highlights.content"><span class="highlight" v-html="highlight"></span></li></ul></td>
                 <td><span class="header-content">
-                        <NcPopover
-                            :shown="showPopover[index]"
-                            @update:shown="updateShow(index, $event)"
-                            popupRole="menu">
-                            <template #trigger>
-                                <NcButton 
-                                    aria-label="Exclude paths"
-                                    size="small"
-                                    variant="tertiary"
-                                    :disabled="!isRootDir(file.name)">
-                                    <template #icon>
-                                        <IconFolderCancelOutline :size="15" />
-                                    </template>
-                                </NcButton>
-                            </template>
-                            <template #default>
-                                <div class="exclude-folder-popover">
-                                    <div class="exclude-folder-popover-heading">
-                                        Exclude all files and folders under ...
-                                    </div>
-                                    <ul>
-                                        <NcListItem v-for="folder in extractFolders(file.name)"
-                                            compact
-                                            :name="folder"
-                                            @click="onItemClick(index,folder)">
-                                            <template #icon>
-                                                <IconFolderCancelOutline :size="15" />
-                                            </template>
-                                        </NcListItem>
-                                    </ul>
-                                </div>
-                            </template>
-                        </NcPopover>
+                        <ExcludeFolderAction :filePath="file.name" @excludeFolder="onExcludeFolder" />
                         <a :href="file.link" target="_blank">
                             <NcButton 
                                 aria-label="Open file"
@@ -121,12 +89,10 @@
 import { mdiFilePdfBox } from '@mdi/js'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
 import NcButton from '@nextcloud/vue/components/NcButton'
-import NcPopover from '@nextcloud/vue/components/NcPopover'
-import NcListItem from '@nextcloud/vue/components/NcListItem'
 import ChevronUp from 'vue-material-design-icons/ChevronUp.vue'
 import ChevronDown from 'vue-material-design-icons/ChevronDown.vue'
-import IconFolderCancelOutline from 'vue-material-design-icons/FolderCancelOutline.vue'
 import IconOpenInNew from 'vue-material-design-icons/OpenInNew.vue'
+import ExcludeFolderAction from './ExcludeFolderAction.vue'
 
 export default {
     name: 'SearchFilelist',
@@ -151,20 +117,13 @@ export default {
             mdiFilePdfBox,
         }
     },
-    data() {
-        return {
-			showPopover: new Array(this.searchresult.files.length).fill(false),
-        }
-    },
 	components: {
         NcIconSvgWrapper,
         ChevronUp,
         ChevronDown,
         NcButton,
-        NcPopover,
-        NcListItem,
-        IconFolderCancelOutline,
         IconOpenInNew,
+        ExcludeFolderAction,
     },
 	methods: {
         handleSort(sortCriterion, sortOrder) {
@@ -176,27 +135,8 @@ export default {
                 this.$emit('update:sortOrder', sortOrder);
             }
         },
-        isRootDir(path) {
-            return path.includes('/');
-        },
-        extractFolders(filePath) {
-            // filePath has the form "Root/Dir1/Dir2/filename.ext"
-            // @returns ["Root/", "Root/Dir1/", "Root/Dir1/Dir2/"]
-            const segments = filePath.split('/');
-
-            // remove the filename part
-            segments.pop(); 
-
-            const output = segments.map((_, index) => 
-                segments.slice(0, index + 1).join('/') + '/');
-            return output;
-        },
-        onItemClick(index, path) {
-            this.$set(this.showPopover, index, false);
+        onExcludeFolder(path) {
             this.$emit('excludeFolder', path);
-        },
-        updateShow(index, event) {
-            this.$set(this.showPopover, index, event);
         }
 	},
 }
@@ -280,16 +220,6 @@ export default {
 ::v-deep(span.highlight em) {
     font-style: italic;
     font-weight: 700;
-}
-
-.exclude-folder-popover {
-    width: 300px;
-    padding: 2px 15px 2px 5px;
-}
-
-.exclude-folder-popover-heading {
-    font-weight: bold;
-    padding: 5px 15px 0px 5px;
 }
 
 </style>
