@@ -10,7 +10,7 @@
                 <NcAppNavigationCaption name="Date Filter" is-heading />
                 <DateFilter :modelValue="search_criteria.after_date" @update:model-value="onAfterDateSelect" placeholder="Files modified after"/>
                 <DateFilter :modelValue="search_criteria.before_date" @update:model-value="onBeforeDateSelect" placeholder="Files modified before"/>
-                <NcAppNavigationCaption name="Exclude Folders" is-heading />
+                <NcAppNavigationCaption name="Excluded Folders" is-heading />
                 <ExcludeFoldersFilter :modelValue="search_criteria.exclude_folders" @update:model-value="onExcludeFolderUpdate" />
                 <NcAppNavigationNew text="Search Files" @click="onSubmit" />
             </template>
@@ -22,7 +22,7 @@
                         <p>Start a search by entering criteria in the navigation panel.</p>
                     </div>
                     <div v-else-if="contentState === contentStates.NO_RESULTS" id="no-results-state">
-                        <h3>Search Results</h3>
+                        <h3>Search Result</h3>
                         <p>No files could be found matching your search criteria.</p>
                     </div>
                     <div v-else-if="contentState === contentStates.SHOW_RESULTS" id="results-state">
