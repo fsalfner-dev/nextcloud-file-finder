@@ -3,7 +3,7 @@
         <NcAppNavigation>
             <template #list>
                 <NcAppNavigationCaption name="Search for" is-heading />
-                <SearchInput :modelValue="search_criteria.content" @update="onContentUpdate" @enter="onSubmit" label="Content of the file" />
+                <SearchInput v-if="initial_state.fulltextsearch_available" :modelValue="search_criteria.content" @update="onContentUpdate" @enter="onSubmit" label="Content of the file" />
                 <SearchInput :modelValue="search_criteria.filename" @update="onFilenameUpdate" @enter="onSubmit" label="Filename (wildcards allowed)" />
                 <NcAppNavigationCaption name="File Type Filter" is-heading />
                 <FileTypeFilter :modelValue="search_criteria.file_types" @update:model-value="onFileTypeSelect" />
@@ -63,6 +63,8 @@ import { generateUrl } from '@nextcloud/router'
 import { showError, showInfo, showSuccess } from '@nextcloud/dialogs'
 import axios from '@nextcloud/axios'
 import ExcludeFoldersFilter from './components/ExcludeFoldersFilter.vue'
+import { loadState } from '@nextcloud/initial-state'
+
 
 export default {
     name: 'App',
@@ -95,6 +97,7 @@ export default {
             },
             contentState: 'initial', // Default state
             show_content_column: false,
+            initial_state: loadState('filefinder', 'initial_state'),
         }
     },
     components: {

@@ -21,9 +21,10 @@ use OCA\FullTextSearch_Elasticsearch\Vendor\Elastic\Elasticsearch\ClientBuilder;
 use OCA\FullTextSearch_Elasticsearch\Vendor\Elastic\Elasticsearch\Client;
 
 use OCA\FileFinder\Exceptions\QueryException;
+use OCA\FileFinder\Exceptions\ConfigException;
 
 
-class FileFinderService  {
+class SearchServiceElastic  {
 
     /** @var array<string, string[]> */
     private const FILE_TYPE_EXTENSIONS = [
@@ -315,7 +316,7 @@ class FileFinderService  {
     private function getElasticIndex() : string {
 		$elastic_index = $this->appConfig->getValueString(ElasticApp::APP_NAME, ConfigLexicon::ELASTIC_INDEX);
 		if ($elastic_index === '') {
-            throw new ConfigurationException('Your ElasticSearchPlatform is not configured properly');
+            throw new ConfigException('Your ElasticSearchPlatform is not configured properly');
 		}
         return $elastic_index;
     }
