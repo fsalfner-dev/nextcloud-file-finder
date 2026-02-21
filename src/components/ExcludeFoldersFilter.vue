@@ -2,7 +2,7 @@
     <div class="exclude-folders-container">
         <template v-if="modelValue.length === 0">
             <div class="empty-filters">
-                no folders are excluded.
+                no folders are excluded. Click on action in search result to exclude folders.
             </div>
         </template>
         <template v-else>
