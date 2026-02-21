@@ -17,6 +17,7 @@ use OCP\IAppConfig;
 use OCP\IURLGenerator;
 use OCP\Files\File;
 use OCP\Files\Folder;
+use OCP\Files\FileInfo;
 use OCP\Files\IMimeTypeDetector;
 use OCP\Files\IRootFolder;
 use OCP\IUserSession;
@@ -158,13 +159,22 @@ class SearchServiceFiles  {
                     $this->logger->error('provided exclusion folder is not a string: ' . $folder);
                     continue;
                 }
+
+                // exclude all files and folders under the folder
                 $excludeFolderLikePattern = $userFolder->getName() . '/' . $folder . '%';
+                $this->logger->debug('excluding folder ' . $folder . ' with pattern: ' . $excludeFolderLikePattern);
+                $excludeFolderComparison = new SearchComparison(ISearchComparison::COMPARE_LIKE, 'path', $excludeFolderLikePattern);
+                $excludeFolderOperators[] = new SearchBinaryOperator(ISearchBinaryOperator::OPERATOR_NOT, [$excludeFolderComparison]);
+
+                // exclude the folder itself
+                // note that $folder ends with a trailing slash
+                $excludeFolderLikePattern = $userFolder->getName() . '/' . substr($folder, 0, -1);
                 $this->logger->debug('excluding folder ' . $folder . ' with pattern: ' . $excludeFolderLikePattern);
                 $excludeFolderComparison = new SearchComparison(ISearchComparison::COMPARE_LIKE, 'path', $excludeFolderLikePattern);
                 $excludeFolderOperators[] = new SearchBinaryOperator(ISearchBinaryOperator::OPERATOR_NOT, [$excludeFolderComparison]);
             }
             $excludedFoldersOperator = new SearchBinaryOperator(ISearchBinaryOperator::OPERATOR_AND, $excludeFolderOperators);
-            $searchOperator = new SearchBinaryOperator(ISearchBinaryOperator::OPERATOR_AND, [ $searchOperator, $excludedFoldersInversOperator ]);
+            $searchOperator = new SearchBinaryOperator(ISearchBinaryOperator::OPERATOR_AND, [ $searchOperator, $excludedFoldersOperator ]);
         }
 
         // generating the sort order 
@@ -203,6 +213,11 @@ class SearchServiceFiles  {
             $relativePath = $userFolder->getRelativePath($path);
             if (str_starts_with($relativePath, '/')) {
                 $relativePath = substr($relativePath, 1);
+            }
+
+            // add a trailing slash to folders
+            if ($node->getType() === FileInfo::TYPE_FOLDER) {
+                $relativePath = $relativePath . '/';
             }
 
             $modification_ts = $node->getMtime();

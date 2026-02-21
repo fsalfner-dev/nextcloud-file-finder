@@ -5,12 +5,17 @@ declare(strict_types=1);
 namespace OCA\FileFinder\Service;
 
 use DateTime;
+use Psr\Log\LoggerInterface;
+
 use OCP\IAppConfig;
 use OCP\IURLGenerator;
 use OCP\Files\File;
 use OCP\Files\Folder;
+use OCP\Files\FileInfo;
+use OCP\Files\IRootFolder;
 use OCP\Files\IMimeTypeDetector;
 use OCP\IUserSession;
+
 
 use OCA\FullTextSearch_Elasticsearch\AppInfo\Application as ElasticApp;
 use OCA\FullTextSearch_Elasticsearch\ConfigLexicon;
@@ -37,20 +42,34 @@ class SearchServiceElastic  {
     private IUserSession $userSession;
 
     /**
+     * @var IRootFolder
+     */
+    private IRootFolder $rootFolder;
+
+    /**
      * @var IMimeTypeDetector
      */
     private IMimeTypeDetector $mimeTypeDetector;
+
+    /**
+     * @var LoggerInterface
+     */
+    private LoggerInterface $logger;
 
 	public function __construct(string $appName,
 								IAppConfig $appConfig,
                                 IURLGenerator $urlGenerator,
                                 IUserSession $userSession,
+                                IRootFolder $rootFolder,
                                 IMimeTypeDetector $mimeTypeDetector,
-                                ConfigLexicon $configLexicon) {
+                                ConfigLexicon $configLexicon,
+                                LoggerInterface $logger) {
 		$this->appConfig = $appConfig;
         $this->urlGenerator = $urlGenerator;
         $this->userSession = $userSession;
+        $this->rootFolder = $rootFolder;
         $this->mimeTypeDetector = $mimeTypeDetector;
+        $this->logger = $logger;
 	}
 
 	public function searchFiles(array $search_criteria, int $page, int $size, string $sort = 'score', string $sort_order = 'desc'): array {
@@ -87,8 +106,9 @@ class SearchServiceElastic  {
 		}
         $files = [];
         if ($user !== null) {
+            $userFolder = $this->rootFolder->getUserFolder($user);
             foreach ($result['hits']['hits'] as $hit) {
-                $file = $this->buildHit($hit, $user);
+                $file = $this->buildHit($hit, $user, $userFolder);
                 if ($file !== null) {
                     $files[] = $file;
                 }
@@ -187,7 +207,12 @@ class SearchServiceElastic  {
                 if (!is_string($folder)) {
                     continue;
                 }
+                // exclude files and folders under the excluded folder
                 $query['bool']['must_not'][] = ['prefix' => [ 'title.keyword' => ['value' => $folder]]];
+                
+                // exclude the folder itself
+                // note that $folder contains a trailing slash
+                $query['bool']['must_not'][] = ['term' => [ 'title.keyword' => ['value' => substr($folder,0,-1)]]];
             }
         }
         return $query;
@@ -267,21 +292,26 @@ class SearchServiceElastic  {
         return $elastic_index;
     }
 
-    private function buildHit($hit, $user) : ?array {
+    private function buildHit($hit, $user, $userFolder) : ?array {
         $fileIdParts = explode(":", $hit['_id']);
-        $title = $hit['_source']['title'];
-        $modification_ts = $hit['_source']['lastModified'];
         try {
             $fileId = $fileIdParts[1];
             $filePath = $hit['_source']['share_names'][$user];
             if ($filePath === null) {
                 return null;
             }
+            $node = $userFolder->get($filePath);
+            $modification_ts = $node->getMtime();
+            $mimeType = $node->getMimetype();
+            $mimeTypeIcon = $this->mimeTypeDetector->mimeTypeIcon($mimeType);
+            $title = $hit['_source']['title'];
             $parentFolder = dirname($filePath);
 
-            $mimeType = $this->mimeTypeDetector->detect($filePath);
-            $hitMimeType = $hit['_source']['attachment']['content_type'];
-            $mimeTypeIcon = $this->mimeTypeDetector->mimeTypeIcon($mimeType);
+             
+            // add a trailing slash to folders
+            if ($node->getType() === FileInfo::TYPE_FOLDER) {
+                $title = $title . '/';
+            }
 
             $url = $this->urlGenerator->linkToRouteAbsolute(
                 'files.view.index',
