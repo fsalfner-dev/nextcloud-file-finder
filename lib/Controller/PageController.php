@@ -43,6 +43,11 @@ class PageController extends Controller {
 	 */
 	private IAppManager $appManager;
 
+    /**
+	 * @var IAppConfig
+	 */
+	private IAppConfig $appConfig;
+
 	/**
 	 * @var IServerContainer
 	 */
@@ -51,11 +56,13 @@ class PageController extends Controller {
 	public function __construct(string $appName,
 								IRequest $request,
 								IAppManager $appManager,
+								IAppConfig $appConfig,
 								IServerContainer $container,
 								IInitialState $initialStateService,
 								?string $userId) {
 		parent::__construct($appName, $request);
 		$this->appManager = $appManager;
+		$this->appConfig = $appConfig;
 		$this->serviceContainer = $container;
 		$this->initialStateService = $initialStateService;
 		$this->userId = $userId;

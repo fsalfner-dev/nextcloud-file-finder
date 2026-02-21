@@ -203,6 +203,11 @@ export default {
     padding-left: 20px;
 }
 
+.file-icon {
+    width: 24px;
+    height: 24px;
+}
+
 .file-link {
   display: inline-flex;
   align-items: center;

@@ -38,6 +38,7 @@ export default {
                 { value: 'pdfs', label: 'PDFs' },
                 { value: 'spreadsheets', label: 'Spreadsheets' },
                 { value: 'documents', label: 'Documents' },
+                { value: 'presentations', label: 'Presentations' },
                 { value: 'videos', label: 'Videos' },
             ],
         };
