@@ -39,7 +39,11 @@
                             />
                         </div>
                         <div id="pagination">
-                            <SearchPagination :searchresult="search_result" @update:page="onPageUpdate" @update:size="onSizeUpdate" />
+                            <SearchPagination 
+                                :searchresult="search_result"
+                                :totalHitsAvailable="initial_state.fulltextsearch_available" 
+                                @update:page="onPageUpdate" 
+                                @update:size="onSizeUpdate" />
                         </div>
                     </div>
                 </div>
@@ -144,6 +148,8 @@ export default {
         },
 
         onSizeUpdate(e) {
+            // compute the new page number so that the same search results remain on the screen
+            this.search_pagination.page = Math.floor(this.search_pagination.page * this.search_pagination.size / e);
             this.search_pagination.size = e;
             this.performSearch();
         },

@@ -25,7 +25,8 @@
 
             <!-- Page Info -->
             <span class="page-info">
-                Page {{ searchresult.page + 1 }} of {{ totalPages }}
+                Page {{ searchresult.page + 1 }}
+                <template v-if="totalHitsAvailable"> of {{ totalPages }}</template>
             </span>
 
             <!-- Next Page Button -->
@@ -41,6 +42,7 @@
 
             <!-- Last Page Button -->
             <NcButton
+                v-if="totalHitsAvailable"
                 :disabled="isLastPage"
                 variant="secondary"
                 @click="goToPage(totalPages - 1)"
@@ -52,7 +54,7 @@
         </div>
 
         <div class="page-size-controls">
-            <label for="page-size-select">Page Size:</label>
+            <label for="page-size-select">Number of results:</label>
             <select id="page-size-select" v-model="selectedPageSize" @change="updatePageSize">
                 <option v-for="size in pageSizes" :key="size" :value="size">
                     {{ size }}
@@ -76,6 +78,10 @@ export default {
             type: Object,
             required: true,
         },
+        totalHitsAvailable: {
+            type: Boolean,
+            required: true,
+        }
     },
     components: {
         NcButton,
@@ -87,28 +93,34 @@ export default {
     data() {
         return {
             pageSizes: [5, 10, 50, 100], 
-            selectedPageSize: this.searchresult.size, // Currently selected page size
+            selectedPageSize: this.searchresult.size, 
         }
     },
     computed: {
         totalPages() {
-            return Math.ceil(this.searchresult.hits / this.searchresult.size)
+            if (this.totalHitsAvailable) {
+                return Math.ceil(this.searchresult.hits / this.searchresult.size);
+            } else {
+                return 1;
+            }
         },
         isFirstPage() {
             return this.searchresult.page === 0
         },
         isLastPage() {
-            return this.searchresult.page === this.totalPages - 1
+            if (this.totalHitsAvailable) {
+                return this.searchresult.page === this.totalPages - 1;
+            } else {
+                return this.searchresult.hits < this.searchresult.size;
+            }
         },
     },
     methods: {
         goToPage(page) {
-            if (page >= 0 && page < this.totalPages) {
-                this.$emit('update:page', page) // Emit event to update the page
-            }
+            this.$emit('update:page', page) 
         },
         updatePageSize() {
-            this.$emit('update:size', this.selectedPageSize) // Emit event to update the page size
+            this.$emit('update:size', this.selectedPageSize)
         },
     },
 }
