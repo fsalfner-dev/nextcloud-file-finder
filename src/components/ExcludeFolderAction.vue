@@ -11,7 +11,7 @@
                 variant="tertiary"
                 :disabled="!isRootDir(filePath)">
                 <template #icon>
-                    <IconFolderCancelOutline :size="15" />
+                    <IconFolderCancelOutline :size="20" />
                 </template>
             </NcButton>
         </template>
@@ -26,7 +26,7 @@
                         :name="folder"
                         @click="onSelect(folder)">
                         <template #icon>
-                            <IconFolderCancelOutline :size="15" />
+                            <IconFolderCancelOutline :size="20" />
                         </template>
                     </NcListItem>
                 </ul>

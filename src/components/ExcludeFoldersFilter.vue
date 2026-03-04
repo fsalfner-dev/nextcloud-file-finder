@@ -72,7 +72,8 @@ export default {
     flex-direction: row;
     flex-wrap: wrap;
     gap: 8px;
-    padding-left: 16px;
+    padding-left: 20px;
+    padding-right: 8px;
 }
 
 .exclude-folders-popover {

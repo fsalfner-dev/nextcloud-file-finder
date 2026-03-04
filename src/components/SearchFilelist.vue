@@ -73,7 +73,7 @@
                                 size="small"
                                 variant="tertiary">
                                 <template #icon>
-                                    <IconOpenInNew :size="15" />
+                                    <IconOpenInNew :size="20" />
                                 </template>
                             </NcButton>
                         </a>

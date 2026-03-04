@@ -1,18 +1,22 @@
 <template>
-    <div class="date-filter-picker">
-        <NcDateTimePicker 
-            type="date"
-            :placeholder="placeholder" 
-            :model-value="modelValue" 
-            @update:model-value="onUpdate" />
-        <NcActions>
-            <NcActionButton @click="onDelete">
-                <template #icon>
-                    <Close :size="20" />
-                </template>
-                Delete
-            </NcActionButton>
-        </NcActions>
+    <div class="date-filter-container">
+        <div>{{ label }}</div>
+        <div class="date-filter-picker">
+            <NcDateTimePicker 
+                :id="id"
+                type="date"
+                :placeholder="'Click to select date'" 
+                :model-value="modelValue" 
+                @update:model-value="onUpdate" />
+            <NcActions>
+                <NcActionButton @click="onDelete">
+                    <template #icon>
+                        <Close :size="20" />
+                    </template>
+                    Delete
+                </NcActionButton>
+            </NcActions>
+        </div>
     </div>
 </template>
 
@@ -21,6 +25,10 @@ import NcDateTimePicker from '@nextcloud/vue/components/NcDateTimePicker'
 import NcActions from '@nextcloud/vue/components/NcActions'
 import NcActionButton from '@nextcloud/vue/components/NcActionButton'
 import Close from 'vue-material-design-icons/Close.vue'
+
+let dateFilterId = 0; // Globaler Zähler im Modul-Scope
+const id = `id-${dateFilterId++}`;
+
 export default {
     name: 'DateFilter',
     components: {
@@ -34,9 +42,14 @@ export default {
             type: Date,
             default: new Date(),
         },
-        placeholder: {
+        dateType: {
             type: String,
-            default: ''
+            default: 'after'
+        }
+    },
+    computed: {
+        label() {
+            return "Only show files " + this.dateType;
         }
     },
     emits: ['update:model-value'],
@@ -53,12 +66,19 @@ export default {
 </script>
 
 <style scoped lang="scss">
+.date-filter-container {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    padding-left: 20px;
+    padding-bottom: 8px;
+}
+
 .date-filter-picker {
     display: flex;
     flex-direction: row;
     gap: 4px;
     align-items: center;
     justify-content: flex-start;
-    padding-left: 16px;
 }
 </style>

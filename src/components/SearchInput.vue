@@ -58,7 +58,9 @@ export default {
     width: 100%;
     display: flex;
     justify-content: center;
-    padding: 4px 8px;
+    padding-bottom: 4px;
+    padding-left: 8px;
+    padding-right: 8px;
 }
 
 </style>

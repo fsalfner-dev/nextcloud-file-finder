@@ -5,14 +5,42 @@
                 <NcAppNavigationCaption name="Search for" is-heading />
                 <SearchInput v-if="initial_state.fulltextsearch_available" :modelValue="search_criteria.content" @update="onContentUpdate" @enter="onSubmit" label="Content of the file" />
                 <SearchInput :modelValue="search_criteria.filename" @update="onFilenameUpdate" @enter="onSubmit" label="Filename (wildcards allowed)" />
-                <NcAppNavigationCaption name="File Type Filter" is-heading />
-                <FileTypeFilter :modelValue="search_criteria.file_types" @update:model-value="onFileTypeSelect" />
-                <NcAppNavigationCaption name="Date Filter" is-heading />
-                <DateFilter :modelValue="search_criteria.after_date" @update:model-value="onAfterDateSelect" placeholder="Files modified after"/>
-                <DateFilter :modelValue="search_criteria.before_date" @update:model-value="onBeforeDateSelect" placeholder="Files modified before"/>
-                <NcAppNavigationCaption name="Excluded Folders" is-heading />
-                <ExcludeFoldersFilter :modelValue="search_criteria.exclude_folders" @update:model-value="onExcludeFolderUpdate" />
                 <NcAppNavigationNew text="Search Files" @click="onSubmit" />
+                <NcAppNavigationCaption name="Filter results" is-heading />
+                <NcAppNavigationItem name="File Type Filter" :allowCollapse="true">
+                    <template #icon>
+					    <IconFileQuestionOutline :size="20" />
+				    </template>
+                    <template #counter>
+                        <NcCounterBubble v-if="search_criteria.file_types.length > 0" :count="search_criteria.file_types.length" />
+                    </template>
+                    <template #default>
+                        <FileTypeFilter :modelValue="search_criteria.file_types" @update:model-value="onFileTypeSelect" />
+                    </template>
+                </NcAppNavigationItem>
+                <NcAppNavigationItem name="Date Filter" :allowCollapse="true">
+                    <template #icon>
+					    <IconCalendarMonthOutline :size="20" />
+				    </template>
+                    <template #counter>
+                        <NcCounterBubble v-if="getNoOfDateFilters() > 0" :count="getNoOfDateFilters()" />
+                    </template>
+                    <template #default>
+                        <DateFilter :modelValue="search_criteria.after_date" @update:model-value="onAfterDateSelect" dateType="after" />
+                        <DateFilter :modelValue="search_criteria.before_date" @update:model-value="onBeforeDateSelect" dateType="before"/>
+                    </template>
+                </NcAppNavigationItem>
+                <NcAppNavigationItem name="Excluded Folders" :allowCollapse="true">
+                    <template #icon>
+					    <IconFolderCancelOutline :size="20" />
+				    </template>
+                    <template #counter>
+                        <NcCounterBubble v-if="search_criteria.exclude_folders.length > 0" :count="search_criteria.exclude_folders.length" />
+                    </template>
+                    <template #default>
+                        <ExcludeFoldersFilter :modelValue="search_criteria.exclude_folders" @update:model-value="onExcludeFolderUpdate" />
+                    </template>
+                </NcAppNavigationItem>
             </template>
         </NcAppNavigation>
         <NcAppContent>
@@ -57,6 +85,7 @@ import NcContent from '@nextcloud/vue/dist/Components/NcContent.js'
 import NcAppNavigationNew from '@nextcloud/vue/components/NcAppNavigationNew'
 import NcAppNavigation from '@nextcloud/vue/dist/Components/NcAppNavigation.js'
 import NcAppNavigationCaption from '@nextcloud/vue/components/NcAppNavigationCaption'
+import NcAppNavigationItem from '@nextcloud/vue/components/NcAppNavigationItem'
 import NcAppContent from '@nextcloud/vue/dist/Components/NcAppContent.js'
 import SearchInput from './components/SearchInput.vue'
 import SearchFilelist from './components/SearchFilelist.vue'
@@ -68,6 +97,11 @@ import { showError, showInfo, showSuccess } from '@nextcloud/dialogs'
 import axios from '@nextcloud/axios'
 import ExcludeFoldersFilter from './components/ExcludeFoldersFilter.vue'
 import { loadState } from '@nextcloud/initial-state'
+import IconFileQuestionOutline from 'vue-material-design-icons/FileQuestionOutline.vue'
+import IconCalendarMonthOutline from 'vue-material-design-icons/CalendarMonthOutline.vue'
+import IconFolderCancelOutline from 'vue-material-design-icons/FolderCancelOutline.vue'
+import NcAppNavigationSpacer from '@nextcloud/vue/components/NcAppNavigationSpacer'
+import NcCounterBubble from '@nextcloud/vue/components/NcCounterBubble'
 
 
 export default {
@@ -110,6 +144,12 @@ export default {
         NcAppNavigation,
         NcAppNavigationNew,
         NcAppNavigationCaption,
+        NcAppNavigationItem,
+        NcAppNavigationSpacer,
+        NcCounterBubble,
+        IconFileQuestionOutline,
+        IconCalendarMonthOutline,
+        IconFolderCancelOutline,
         SearchInput,
         SearchFilelist,
         SearchPagination,
@@ -128,18 +168,40 @@ export default {
 
         onFileTypeSelect(e) {
             this.search_criteria.file_types = e;
+            if (this.contentState != this.contentStates.INITIAL) {
+                this.performSearch();
+            }
         },
 
-        onAfterDateSelect(e) {
-            this.search_criteria.after_date = e;
+        onAfterDateSelect(date) {
+            if ((this.search_criteria.before_date !== null) && (date >= this.search_criteria.before_date)) {
+                showError('Selected date must be earlier than the selected second date');
+                this.search_criteria.after_date = null;
+            } else {
+                this.search_criteria.after_date = date;
+                if (this.contentState != this.contentStates.INITIAL) {
+                    this.performSearch();
+                }
+            }
         },
 
-        onBeforeDateSelect(e) {
-            this.search_criteria.before_date = e;
-        },
+        onBeforeDateSelect(date) {
+            if ((this.search_criteria.after_date !== null) && (date <= this.search_criteria.after_date)) {
+                showError('Selected date must be later than the selected first date');
+                this.search_criteria.before_date = null;
+            } else {
+                this.search_criteria.before_date = date;
+                if (this.contentState != this.contentStates.INITIAL) {
+                    this.performSearch();
+                }
+            }
+       },
 
         onExcludeFolderUpdate(e) {
             this.search_criteria.exclude_folders = e;
+            if (this.contentState != this.contentStates.INITIAL) {
+                this.performSearch();
+            }
         },
 
         onPageUpdate(e) {
@@ -177,7 +239,21 @@ export default {
                 cleaned_folders.push(newpath);
                 this.search_criteria.exclude_folders = cleaned_folders;
                 showSuccess('Path added to excluded folders');
+                if (this.contentState != this.contentStates.INITIAL) {
+                    this.performSearch();
+                }
             }
+        },
+
+        getNoOfDateFilters() {
+            let i = 0;
+            if (this.search_criteria.before_date !== null) {
+                i++;
+            }
+            if (this.search_criteria.after_date !== null) {
+                i++;
+            }
+            return i;
         },
 
         onSubmit() {
