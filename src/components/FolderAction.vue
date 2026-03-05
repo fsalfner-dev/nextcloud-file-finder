@@ -5,20 +5,20 @@
         popupRole="menu">
         <template #trigger>
             <NcButton 
-                aria-label="Exclude paths"
-                text="Exclude paths"
+                :aria-label="explanation"
+                :text="explanation"
                 size="small"
                 variant="tertiary"
                 :disabled="!isRootDir(filePath)">
                 <template #icon>
-                    <IconFolderCancelOutline :size="20" />
+                    <slot name="icon"></slot>
                 </template>
             </NcButton>
         </template>
         <template #default>
-            <div class="exclude-folder-popover">
-                <div class="exclude-folder-popover-heading">
-                    Exclude all files and folders under ...
+            <div class="folder-action-popover">
+                <div class="folder-action-popover-heading">
+                    {{ explanation }}
                 </div>
                 <ul>
                     <NcListItem v-for="folder in paths"
@@ -26,7 +26,7 @@
                         :name="folder"
                         @click="onSelect(folder)">
                         <template #icon>
-                            <IconFolderCancelOutline :size="20" />
+                            <slot name="icon"></slot>
                         </template>
                     </NcListItem>
                 </ul>
@@ -39,24 +39,26 @@
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcPopover from '@nextcloud/vue/components/NcPopover'
 import NcListItem from '@nextcloud/vue/components/NcListItem'
-import IconFolderCancelOutline from 'vue-material-design-icons/FolderCancelOutline.vue'
 
 
 export default {
-    name: 'ExcludeFolderAction',
+    name: 'FolderAction',
     components: {
         NcPopover,
         NcButton,
-        IconFolderCancelOutline,
         NcListItem,
     },
     props: {
         filePath: {
             type: String,
             default: ''
+        },
+        explanation: {
+            type: String,
+            default: ''
         }
     },
-    emits: ['excludeFolder'],
+    emits: ['folderAction'],
     data() {
         return {
             showPopover: false,
@@ -82,7 +84,7 @@ export default {
         },
         onSelect(path) {
             this.updateShow(false);
-            this.$emit('excludeFolder', path);
+            this.$emit('folderAction', path);
         },
         updateShow(event) {
             this.showPopover = event;
@@ -94,12 +96,12 @@ export default {
 
 <style scoped lang="scss">
 
-.exclude-folder-popover {
+.folder-action-popover {
     width: 300px;
     padding: 2px 15px 2px 5px;
 }
 
-.exclude-folder-popover-heading {
+.folder-action-popover-heading {
     font-weight: bold;
     padding: 5px 15px 0px 5px;
 }

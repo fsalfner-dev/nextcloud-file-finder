@@ -38,7 +38,18 @@
                         <NcCounterBubble v-if="search_criteria.exclude_folders.length > 0" :count="search_criteria.exclude_folders.length" />
                     </template>
                     <template #default>
-                        <ExcludeFoldersFilter :modelValue="search_criteria.exclude_folders" @update:model-value="onExcludeFolderUpdate" />
+                        <ExcludeFoldersFilter :modelValue="search_criteria.exclude_folders" @update:model-value="removeExcludeFolder" />
+                    </template>
+                </NcAppNavigationItem>
+                <NcAppNavigationItem name="Start Folder" :allowCollapse="true">
+                    <template #icon>
+					    <IconFolderSearchOutline :size="20" />
+				    </template>
+                    <template #counter>
+                        <NcCounterBubble v-if="search_criteria.start_folder" :count="1" />
+                    </template>
+                    <template #default>
+                        <FolderDrilldownFilter :modelValue="search_criteria.start_folder" @update:model-value="removeStartFolder" />
                     </template>
                 </NcAppNavigationItem>
             </template>
@@ -64,6 +75,7 @@
                                 @update:sort="onSortUpdate"
                                 @update:sortOrder="onSortOrderUpdate"
                                 @excludeFolder="addExcludedFolder"
+                                @folderDrilldown="setStartFolder"
                             />
                         </div>
                         <div id="pagination">
@@ -96,10 +108,12 @@ import { generateUrl } from '@nextcloud/router'
 import { showError, showInfo, showSuccess } from '@nextcloud/dialogs'
 import axios from '@nextcloud/axios'
 import ExcludeFoldersFilter from './components/ExcludeFoldersFilter.vue'
+import FolderDrilldownFilter from './components/FolderDrilldownFilter.vue'
 import { loadState } from '@nextcloud/initial-state'
 import IconFileQuestionOutline from 'vue-material-design-icons/FileQuestionOutline.vue'
 import IconCalendarMonthOutline from 'vue-material-design-icons/CalendarMonthOutline.vue'
 import IconFolderCancelOutline from 'vue-material-design-icons/FolderCancelOutline.vue'
+import IconFolderSearchOutline from 'vue-material-design-icons/FolderSearchOutline.vue'
 import NcAppNavigationSpacer from '@nextcloud/vue/components/NcAppNavigationSpacer'
 import NcCounterBubble from '@nextcloud/vue/components/NcCounterBubble'
 
@@ -114,6 +128,7 @@ export default {
                 file_types: [],
                 after_date: null,
                 before_date: null,
+                start_folder: null,
                 exclude_folders: [],
             },
             search_pagination: {
@@ -150,12 +165,14 @@ export default {
         IconFileQuestionOutline,
         IconCalendarMonthOutline,
         IconFolderCancelOutline,
+        IconFolderSearchOutline,
         SearchInput,
         SearchFilelist,
         SearchPagination,
         FileTypeFilter,
         DateFilter,
         ExcludeFoldersFilter,
+        FolderDrilldownFilter,
     },
     methods: {
         onContentUpdate(e) {
@@ -197,8 +214,39 @@ export default {
             }
        },
 
-        onExcludeFolderUpdate(e) {
+        addExcludedFolder(newpath) {
+            // check if the new path is more specific than an existing one
+            if (this.search_criteria.exclude_folders.filter((e) => newpath.startsWith(e)).length > 0) {
+                showInfo('Path is already excluded by other excluded folders');
+            } else {
+                // remove already existing paths that are more specific (subfolders) of new path
+                var cleaned_folders = this.search_criteria.exclude_folders.filter((el) => !el.startsWith(newpath));
+
+                cleaned_folders.push(newpath);
+                this.search_criteria.exclude_folders = cleaned_folders;
+                showSuccess('Path added to excluded folders');
+                if (this.contentState != this.contentStates.INITIAL) {
+                    this.performSearch();
+                }
+            }
+        },
+
+        removeExcludeFolder(e) {
             this.search_criteria.exclude_folders = e;
+            if (this.contentState != this.contentStates.INITIAL) {
+                this.performSearch();
+            }
+        },
+
+        setStartFolder(path) {
+            this.search_criteria.start_folder = path;
+            if (this.contentState != this.contentStates.INITIAL) {
+                this.performSearch();
+            }
+        },
+
+        removeStartFolder(e) {
+            this.search_criteria.start_folder = null;
             if (this.contentState != this.contentStates.INITIAL) {
                 this.performSearch();
             }
@@ -226,23 +274,6 @@ export default {
             this.search_sort_order = e;
             this.search_pagination.page = 0;
             this.performSearch();
-        },
-
-        addExcludedFolder(newpath) {
-            // check if the new path is more specific than an existing one
-            if (this.search_criteria.exclude_folders.filter((e) => newpath.startsWith(e)).length > 0) {
-                showInfo('Path is already excluded by other excluded folders');
-            } else {
-                // remove already existing paths that are more specific (subfolders) of new path
-                var cleaned_folders = this.search_criteria.exclude_folders.filter((el) => !el.startsWith(newpath));
-
-                cleaned_folders.push(newpath);
-                this.search_criteria.exclude_folders = cleaned_folders;
-                showSuccess('Path added to excluded folders');
-                if (this.contentState != this.contentStates.INITIAL) {
-                    this.performSearch();
-                }
-            }
         },
 
         getNoOfDateFilters() {

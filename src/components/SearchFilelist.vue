@@ -66,7 +66,22 @@
                 <td>{{ file.modified }}</td>
                 <td v-if="show_content"><ul><li v-for="highlight in file.highlights.content"><span class="highlight" v-html="highlight"></span></li></ul></td>
                 <td><span class="header-content">
-                        <ExcludeFolderAction :filePath="file.name" @excludeFolder="onExcludeFolder" />
+                        <FolderAction 
+                            :filePath="file.name" 
+                            @folderAction="onExcludeFolder" 
+                            :explanation="'Exclude all files and folders under ...'">
+                            <template #icon>
+                                <IconFolderCancelOutline :size="20" />
+                            </template>
+                        </FolderAction>
+                        <FolderAction 
+                            :filePath="file.name" 
+                            @folderAction="onFolderDrilldown" 
+                            :explanation="'Only show files and folders under ...'">
+                            <template #icon>
+                                <IconFolderSearchOutline :size="20" />
+                            </template>
+                        </FolderAction>
                         <a :href="file.link" target="_blank">
                             <NcButton 
                                 aria-label="Open file"
@@ -92,7 +107,9 @@ import NcButton from '@nextcloud/vue/components/NcButton'
 import ChevronUp from 'vue-material-design-icons/ChevronUp.vue'
 import ChevronDown from 'vue-material-design-icons/ChevronDown.vue'
 import IconOpenInNew from 'vue-material-design-icons/OpenInNew.vue'
-import ExcludeFolderAction from './ExcludeFolderAction.vue'
+import IconFolderCancelOutline from 'vue-material-design-icons/FolderCancelOutline.vue'
+import IconFolderSearchOutline from 'vue-material-design-icons/FolderSearchOutline.vue'
+import FolderAction from './FolderAction.vue'
 
 export default {
     name: 'SearchFilelist',
@@ -111,7 +128,7 @@ export default {
             default: 'desc'
         }
     },
-    emits: ['update:sort', 'update:sortOrder', 'excludeFolder'],
+    emits: ['update:sort', 'update:sortOrder', 'excludeFolder', 'folderDrilldown'],
     setup() {
         return {
             mdiFilePdfBox,
@@ -123,7 +140,9 @@ export default {
         ChevronDown,
         NcButton,
         IconOpenInNew,
-        ExcludeFolderAction,
+        IconFolderCancelOutline,
+        IconFolderSearchOutline,
+        FolderAction,
     },
 	methods: {
         handleSort(sortCriterion, sortOrder) {
@@ -137,6 +156,9 @@ export default {
         },
         onExcludeFolder(path) {
             this.$emit('excludeFolder', path);
+        },
+        onFolderDrilldown(path) {
+            this.$emit('folderDrilldown', path);
         }
 	},
 }
