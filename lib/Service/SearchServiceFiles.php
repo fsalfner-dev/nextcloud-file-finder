@@ -200,7 +200,7 @@ class SearchServiceFiles  {
             default:
                 $searchOrder = new SearchOrder($order, 'path');
         }
-        $offset = $page * $size;
+        $offset = ($page * $size) + 1;
         $this->logger->debug('running search with size=' . $size . ' and offset=' . $offset);
         $searchQuery = new SearchQuery(
             $searchOperator,                    // ISearchOperator
