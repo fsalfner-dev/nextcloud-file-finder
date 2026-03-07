@@ -6,21 +6,23 @@
             </div>
         </template>
         <template v-else>
-            <template v-for="(item, index) in modelValue">
-                <template v-if="needsShortening(item)">
-                    <NcPopover :triggers="['hover']">
-                        <template #trigger>
-                            <NcChip :text="shortenPath(item)" :icon-path="mdiFolderOutline" variant="error" @close="onDelete(index)"/>
-                        </template>
-                        <template #default>
-                            <div class="exclude-folders-popover">{{ item }}</div>
-                        </template>
-                    </NcPopover>
+            <div class="non-empty-filters">
+                <template v-for="(item, index) in modelValue">
+                    <template v-if="needsShortening(item)">
+                        <NcPopover :triggers="['hover']">
+                            <template #trigger>
+                                <NcChip :text="shortenPath(item)" :icon-path="mdiFolderOutline" variant="error" @close="onDelete(index)"/>
+                            </template>
+                            <template #default>
+                                <div class="exclude-folders-popover">{{ item }}</div>
+                            </template>
+                        </NcPopover>
+                    </template>
+                    <template v-else>
+                        <NcChip :text="shortenPath(item)" :icon-path="mdiFolderOutline" variant="error" @close="onDelete(index)"/>
+                    </template>
                 </template>
-                <template v-else>
-                    <NcChip :text="shortenPath(item)" :icon-path="mdiFolderOutline" variant="error" @close="onDelete(index)"/>
-                </template>
-            </template>
+            </div>
         </template>
     </div>
 </template>
@@ -59,7 +61,7 @@ export default {
             return path.length > CUTOFF_LENGTH;
         },
         shortenPath(path) {
-            return path.substring(0,CUTOFF_LENGTH) + '...';
+            return path.substring(0,CUTOFF_LENGTH) + '…';
         }
     }
 };
@@ -84,5 +86,10 @@ export default {
 .empty-filters {
     font-style: italic;
 }
+
+.non-empty-filters {
+    margin-top: 8px;
+}
+
 
 </style>

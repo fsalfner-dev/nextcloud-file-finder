@@ -6,19 +6,21 @@
             </div>
         </template>
         <template v-else>
-            <template v-if="needsShortening(modelValue)">
-                <NcPopover :triggers="['hover']">
-                    <template #trigger>
-                        <NcChip :text="shortenPath(modelValue)" :icon-path="mdiFolderOutline" variant="error" @close="onDelete(index)"/>
-                    </template>
-                    <template #default>
-                        <div class="folder-drilldown-popover">{{ modelValue }}</div>
-                    </template>
-                </NcPopover>
-            </template>
-            <template v-else>
-                <NcChip :text="shortenPath(modelValue)" :icon-path="mdiFolderOutline" variant="error" @close="onDelete(index)"/>
-            </template>
+            <div class="non-empty-drilldown">
+                <template v-if="needsShortening(modelValue)">
+                    <NcPopover :triggers="['hover']">
+                        <template #trigger>
+                            <NcChip :text="shortenPath(modelValue)" :icon-path="mdiFolderOutline" variant="error" @close="onDelete(index)"/>
+                        </template>
+                        <template #default>
+                            <div class="folder-drilldown-popover">{{ modelValue }}</div>
+                        </template>
+                    </NcPopover>
+                </template>
+                <template v-else>
+                    <NcChip :text="shortenPath(modelValue)" :icon-path="mdiFolderOutline" variant="error" @close="onDelete(index)"/>
+                </template>
+            </div>
         </template>
     </div>
 </template>
@@ -57,7 +59,7 @@ export default {
             return path.length > CUTOFF_LENGTH;
         },
         shortenPath(path) {
-            return path.substring(0,CUTOFF_LENGTH) + '...';
+            return path.substring(0,CUTOFF_LENGTH) + '…';
         }
     }
 };
@@ -81,6 +83,10 @@ export default {
 
 .empty-drilldown {
     font-style: italic;
+}
+
+.non-empty-drilldown {
+    margin-top: 8px;
 }
 
 </style>
