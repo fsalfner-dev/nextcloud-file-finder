@@ -215,6 +215,13 @@ class SearchServiceElastic  {
                 $query['bool']['must_not'][] = ['term' => [ 'title.keyword' => ['value' => substr($folder,0,-1)]]];
             }
         }
+
+        // extend the query to only show files beneath the start folder (root of the search)
+        if (isset($search_criteria['start_folder']) && trim((string) $search_criteria['start_folder']) !== '') {
+            // title.keyword always contains the full path. Hence we look for entries starting with 
+            // start_folder
+            $query['bool']['filter'][] = ['prefix' => [ 'title.keyword' => ['value' => $search_criteria['start_folder']]]];
+        }
         return $query;
     }
 

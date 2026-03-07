@@ -97,6 +97,8 @@ class SearchServiceFiles  {
 	}
 
     private function buildQuery($search_criteria, $user, $size, $page, $sort_field, $sort_order) : ISearchQuery {
+        $userFolder = $this->rootFolder->getUserFolder($user->getUID());
+    
         // build the base of the query to match filenames by wildcard
         $filename = $search_criteria['filename'] ?? '';
         if ((!isset($search_criteria['filename']) || trim((string) $filename) === '')) {
@@ -153,7 +155,6 @@ class SearchServiceFiles  {
         // folders
         if (isset($search_criteria['exclude_folders']) && is_array($search_criteria['exclude_folders'])) {
             $excludeFolderOperators = [];
-            $userFolder = $this->rootFolder->getUserFolder($user->getUID());
             foreach ($search_criteria['exclude_folders'] as $folder) {
                 if (!is_string($folder)) {
                     $this->logger->error('provided exclusion folder is not a string: ' . $folder);
@@ -175,6 +176,13 @@ class SearchServiceFiles  {
             }
             $excludedFoldersOperator = new SearchBinaryOperator(ISearchBinaryOperator::OPERATOR_AND, $excludeFolderOperators);
             $searchOperator = new SearchBinaryOperator(ISearchBinaryOperator::OPERATOR_AND, [ $searchOperator, $excludedFoldersOperator ]);
+        }
+
+        // extend the query to only show files beneath the start folder (root of the search)
+        if (isset($search_criteria['start_folder']) && trim((string) $search_criteria['start_folder']) !== '') {
+            $startFolderLikePattern = $userFolder->getName() . '/' . $search_criteria['start_folder'] . '%';
+            $startFolderComparison = new SearchComparison(ISearchComparison::COMPARE_LIKE, 'path', $startFolderLikePattern);
+            $searchOperator = new SearchBinaryOperator(ISearchBinaryOperator::OPERATOR_AND, [ $searchOperator, $startFolderComparison ]);
         }
 
         // generating the sort order 

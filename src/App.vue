@@ -240,6 +240,7 @@ export default {
 
         setStartFolder(path) {
             this.search_criteria.start_folder = path;
+            showSuccess('Set path as start folder');
             if (this.contentState != this.contentStates.INITIAL) {
                 this.performSearch();
             }
