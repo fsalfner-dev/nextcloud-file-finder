@@ -26,9 +26,6 @@ import NcActions from '@nextcloud/vue/components/NcActions'
 import NcActionButton from '@nextcloud/vue/components/NcActionButton'
 import Close from 'vue-material-design-icons/Close.vue'
 
-let dateFilterId = 0; // Globaler Zähler im Modul-Scope
-const id = `id-${dateFilterId++}`;
-
 export default {
     name: 'DateFilter',
     components: {
