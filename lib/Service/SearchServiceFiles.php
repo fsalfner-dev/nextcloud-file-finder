@@ -74,20 +74,48 @@ class SearchServiceFiles  {
 	}
 
 	public function searchFiles(array $search_criteria, int $page, int $size, string $sort = 'path', string $sort_order = 'asc'): array {
+		$this->logger->debug('SearchServiceFiles: searchFiles called with page=' . $page . ', size=' . $size . ', sort=' . $sort . ', sort_order=' . $sort_order);
+		
         $user = $this->userSession->getUser();
         if (!$user) {
+            $this->logger->error('SearchServiceFiles: Could not determine user from session');
             throw new ConfigException('could not determine user');
         }
         $userID = $user->getUID();
+        $this->logger->debug('SearchServiceFiles: User ID: ' . $userID);
 
-        $searchQuery = $this->buildQuery($search_criteria, $user, $size, $page, $sort, $sort_order);
-        $userFolder = $this->rootFolder->getUserFolder($userID);
-        $resultNodes = $userFolder->search($searchQuery);
+        try {
+			$searchQuery = $this->buildQuery($search_criteria, $user, $size, $page, $sort, $sort_order);
+			$this->logger->debug('SearchServiceFiles: Search query built successfully');
+		} catch (Exception $e) {
+			$this->logger->error('SearchServiceFiles: Error building search query: ' . $e->getMessage());
+			throw $e;
+		}
+		
+        try {
+			$userFolder = $this->rootFolder->getUserFolder($userID);
+			$resultNodes = $userFolder->search($searchQuery);
+			$this->logger->debug('SearchServiceFiles: Search returned ' . count($resultNodes) . ' results');
+		} catch (Exception $e) {
+			$this->logger->error('SearchServiceFiles: Error executing search: ' . $e->getMessage());
+			throw $e;
+		}
 
         $files = [];
         foreach ($resultNodes as $node) {
-            $files[] = $this->buildHit($node, $userID);
+            try {
+				$file = $this->buildHit($node, $userID);
+				if ($file !== null) {
+					$files[] = $file;
+				}
+			} catch (Exception $e) {
+				$this->logger->error('SearchServiceFiles: Error building hit for node: ' . $e->getMessage());
+				// Continue processing other nodes
+			}
         }
+        
+        $this->logger->debug('SearchServiceFiles: Processed ' . count($files) . ' file results');
+        
         return [
                 'hits' => count($resultNodes),
 				'page' => $page,
@@ -97,6 +125,7 @@ class SearchServiceFiles  {
 	}
 
     private function buildQuery($search_criteria, $user, $size, $page, $sort_field, $sort_order) : ISearchQuery {
+        $this->logger->debug('SearchServiceFiles: Building search query');
         $userFolder = $this->rootFolder->getUserFolder($user->getUID());
     
         // build the base of the query to match filenames by wildcard
@@ -104,25 +133,21 @@ class SearchServiceFiles  {
         if ((!isset($search_criteria['filename']) || trim((string) $filename) === '')) {
             throw new QueryException('A search pattern needs to be provided');
         }
-        // the path field always contains the full path. Hence a query "Lease*.pdf" would only
-        // match for documents in the root directory. To also return documents from 
-        // subfolders, we make sure that there is an asterisk at the beginning to account for 
-        // the directory name 
+        
         $filenameSearchterm = !str_starts_with($filename, '*') ? '*' . $filename : $filename;
         $filenameLikePattern = str_replace(['*', '?'], ['%', '_'], $filenameSearchterm);
-        $this->logger->debug('searching for paths with the pattern: ' . $filenameLikePattern);
+        $this->logger->debug('SearchServiceFiles: Searching for paths with pattern: ' . $filenameLikePattern);
         $searchOperator = new SearchComparison(ISearchComparison::COMPARE_LIKE, 'path', $filenameLikePattern);
 
         // extend the query to only match documents for the specified file types (multi-selection allowed)
-        // file type matching is performed based on file extensions not on mime-types
         $extensions = TypeExtensionMapper::getExtensionsForTypes($search_criteria['file_types'] ?? null);
         if ($extensions !== []) {
+            $this->logger->debug('SearchServiceFiles: Adding filter for ' . count($extensions) . ' file extensions: ' . implode(', ', $extensions));
             // only modify the searchOperator if file extension filtering is needed
             $extensionOperators = [];
             foreach ($extensions as $extension) {
                 $extensionLikePattern = '%.' . $extension;
                 $extensionOperators[] = new SearchComparison(ISearchComparison::COMPARE_LIKE, 'name', $extensionLikePattern );
-                $this->logger->debug('adding filter for extension: ' . $extension);
                 }
             $extensionTerm = new SearchBinaryOperator(ISearchBinaryOperator::OPERATOR_OR, $extensionOperators);
             $searchOperator = new SearchBinaryOperator(ISearchBinaryOperator::OPERATOR_AND, [$searchOperator, $extensionTerm]);
@@ -134,7 +159,9 @@ class SearchServiceFiles  {
             try {
                 $before_date = new DateTime($search_criteria['before_date']);
                 $before_seconds = $before_date->getTimestamp();
+                $this->logger->debug('SearchServiceFiles: Added before_date filter: ' . $search_criteria['before_date']);
             } catch (Exception $e) {
+                $this->logger->error('SearchServiceFiles: Invalid before_date provided: ' . $search_criteria['before_date'] . ', error: ' . $e->getMessage());
                 throw new QueryException('invalid before date provided');
             }
             $beforeOperator = new SearchComparison(ISearchComparison::COMPARE_LESS_THAN_EQUAL, 'mtime', $before_seconds);
@@ -144,7 +171,9 @@ class SearchServiceFiles  {
             try {
                 $after_date = new DateTime($search_criteria['after_date']);
                 $after_seconds = $after_date->getTimestamp();
+                $this->logger->debug('SearchServiceFiles: Added after_date filter: ' . $search_criteria['after_date']);
             } catch (Exception $e) {
+                $this->logger->error('SearchServiceFiles: Invalid after_date provided: ' . $search_criteria['after_date'] . ', error: ' . $e->getMessage());
                 throw new QueryException('invalid after date provided');
             }
             $afterOperator = new SearchComparison(ISearchComparison::COMPARE_GREATER_THAN_EQUAL, 'mtime', $after_seconds);
@@ -154,23 +183,22 @@ class SearchServiceFiles  {
         // extend the query to exclude files and folders below the provided list of excluded
         // folders
         if (isset($search_criteria['exclude_folders']) && is_array($search_criteria['exclude_folders'])) {
+            $this->logger->debug('SearchServiceFiles: Adding exclude_folders filter for ' . count($search_criteria['exclude_folders']) . ' folders');
             $excludeFolderOperators = [];
             foreach ($search_criteria['exclude_folders'] as $folder) {
                 if (!is_string($folder)) {
-                    $this->logger->error('provided exclusion folder is not a string: ' . $folder);
+                    $this->logger->error('SearchServiceFiles: Provided exclusion folder is not a string: ' . gettype($folder));
                     continue;
                 }
 
                 // exclude all files and folders under the folder
                 $excludeFolderLikePattern = $userFolder->getName() . '/' . $folder . '%';
-                $this->logger->debug('excluding folder ' . $folder . ' with pattern: ' . $excludeFolderLikePattern);
+                $this->logger->debug('SearchServiceFiles: Excluding folder with pattern: ' . $excludeFolderLikePattern);
                 $excludeFolderComparison = new SearchComparison(ISearchComparison::COMPARE_LIKE, 'path', $excludeFolderLikePattern);
                 $excludeFolderOperators[] = new SearchBinaryOperator(ISearchBinaryOperator::OPERATOR_NOT, [$excludeFolderComparison]);
 
                 // exclude the folder itself
-                // note that $folder ends with a trailing slash
                 $excludeFolderLikePattern = $userFolder->getName() . '/' . substr($folder, 0, -1);
-                $this->logger->debug('excluding folder ' . $folder . ' with pattern: ' . $excludeFolderLikePattern);
                 $excludeFolderComparison = new SearchComparison(ISearchComparison::COMPARE_LIKE, 'path', $excludeFolderLikePattern);
                 $excludeFolderOperators[] = new SearchBinaryOperator(ISearchBinaryOperator::OPERATOR_NOT, [$excludeFolderComparison]);
             }
@@ -181,12 +209,15 @@ class SearchServiceFiles  {
         // extend the query to only show files beneath the start folder (root of the search)
         if (isset($search_criteria['start_folder']) && trim((string) $search_criteria['start_folder']) !== '') {
             $startFolderLikePattern = $userFolder->getName() . '/' . $search_criteria['start_folder'] . '%';
+            $this->logger->debug('SearchServiceFiles: Added start_folder filter: ' . $search_criteria['start_folder']);
             $startFolderComparison = new SearchComparison(ISearchComparison::COMPARE_LIKE, 'path', $startFolderLikePattern);
             $searchOperator = new SearchBinaryOperator(ISearchBinaryOperator::OPERATOR_AND, [ $searchOperator, $startFolderComparison ]);
         }
 
         // generating the sort order 
-        $order = ($sort_order === 'asc') ? 'asc' : 'desc';        
+        $order = ($sort_order === 'asc') ? 'asc' : 'desc';
+        $this->logger->debug('SearchServiceFiles: Building sort with field=' . $sort_field . ', order=' . $order);
+        
         switch ($sort_field) {
             case 'modified':
                 // Sort by modification date
@@ -195,13 +226,16 @@ class SearchServiceFiles  {
             case 'score':
                 // the files search service does not support filtering by score
                 // fall back to path filtering
+                $this->logger->debug('SearchServiceFiles: Score sorting not supported, falling back to path');
             case 'path':
                 // Sort by file path
             default:
                 $searchOrder = new SearchOrder($order, 'path');
         }
+        
         $offset = ($page * $size) + 1;
-        $this->logger->debug('running search with size=' . $size . ' and offset=' . $offset);
+        $this->logger->debug('SearchServiceFiles: Running search with size=' . $size . ' and offset=' . $offset);
+        
         $searchQuery = new SearchQuery(
             $searchOperator,                    // ISearchOperator
             $size,                              // int limit
@@ -218,6 +252,8 @@ class SearchServiceFiles  {
         try {
             $fileId = $node->getId();
             $path = $node->getPath();
+            $this->logger->debug('SearchServiceFiles: Building hit for file ID: ' . $fileId . ', path: ' . $path);
+            
             $userFolder = $this->rootFolder->getUserFolder($userID);
             $relativePath = $userFolder->getRelativePath($path);
             if (str_starts_with($relativePath, '/')) {
@@ -251,11 +287,13 @@ class SearchServiceFiles  {
                 'highlights' => []
             ];
         } catch (\Exception $e) {
+            $this->logger->error('SearchServiceFiles: Exception building hit: ' . $e->getMessage() . ', file: ' . $e->getFile() . ', line: ' . $e->getLine());
             return [
                 'name' => $node->getPath(),
                 'error' => $e->getMessage(),
             ];
         } catch (\Error $e) { 
+            $this->logger->error('SearchServiceFiles: Error building hit: ' . $e->getMessage() . ', file: ' . $e->getFile() . ', line: ' . $e->getLine());
             return [
                 'name' => $node->getPath(),
                 'error' => $e->getMessage(),
