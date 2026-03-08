@@ -1,3 +1,16 @@
+<!--
+This component renders a label and a date picker to select a date for filtering.
+
+It supports two types: `before` and `after` provided by the `dateType` prop.
+
+```vue
+<template>
+    <DateFilter :modelValue="date" 
+        @update:model-value="onSelect"
+        dateType="after" />
+</template>
+```
+-->
 <template>
     <div class="date-filter-container">
         <div>{{ label }}</div>
@@ -35,16 +48,27 @@ export default {
         Close,
     },
     props: {
+        /** 
+         * selected date object
+         */
         modelValue: {
             type: Date,
             default: new Date(),
         },
+
+        /**
+         * a String indicating the selector type. 
+         * @values before, after 
+         */
         dateType: {
             type: String,
             default: 'after'
         }
     },
     computed: {
+        /**
+         * generate the label text for the date picker
+         */
         label() {
             if (this.dateType === 'after') {
                 return t('filefinder', 'Only show files after');

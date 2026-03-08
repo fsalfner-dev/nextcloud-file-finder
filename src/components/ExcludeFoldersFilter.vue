@@ -1,3 +1,19 @@
+<!--
+This component renders a list of excluded folders as chips.
+Each chip can be removed by clicking on the chip close "x".
+
+If a folder path is too long, it is shortened with an ellipsis, and the full path
+is shown using a popover element.
+
+```vue
+<template>
+    <ExcludeFoldersFilter 
+        :modelValue="excludedFolders" 
+        @update:model-value="onRemoveFolder" />
+</template>
+```
+-->
+
 <template>
     <div class="exclude-folders-container">
         <template v-if="modelValue.length === 0">
@@ -50,6 +66,9 @@ export default {
         NcPopover,
     },
     props: {
+        /**
+         * The list of Strings with the excluded folders 
+         */
         modelValue: {
             type: Array,
             default: [],
@@ -62,12 +81,26 @@ export default {
 	},
     emits: ['update:model-value'],
     methods: {
+        /**
+         * Called when the user clicked on the close element of the chip
+         * @param idx the index in the modelValue list
+         */
         onDelete(idx) {
             this.$emit('update:model-value', this.modelValue.toSpliced(idx,1));
         },
+
+        /**
+         * Tests if a path is too long and needs to be shortened
+         * @param path The full path of a folder
+         */
         needsShortening(path) {
             return path.length > CUTOFF_LENGTH;
         },
+
+        /**
+         * Cuts of the remainder of a path and adds an ellipsis
+         * @param path the full path of a folder
+         */
         shortenPath(path) {
             return path.substring(0,CUTOFF_LENGTH) + '…';
         }

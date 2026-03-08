@@ -1,3 +1,17 @@
+<!--
+This component renders a list of document types where each type can be selected using a checkbox.
+
+The values of the options are translated in the backend into file extensions.
+
+```vue
+<template>
+    <FileTypeFilter 
+        :modelValue="fileTypes" 
+        @update:model-value="onFileTypeSelect" />
+</template>
+```
+-->
+
 <template>
     <div>
         <NcAppNavigationList>
@@ -24,6 +38,10 @@ export default {
         NcAppNavigationList,
     },
     props: {
+        /**
+         * An array of selected file types.
+         * The elements are option values @see options
+         */
         modelValue: {
             type: Array,
             default: [],
