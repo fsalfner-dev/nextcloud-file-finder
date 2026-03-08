@@ -13,7 +13,7 @@
                             <NcChip 
                                 :text="shortenPath(modelValue)" 
                                 :icon-path="mdiFolderOutline" 
-                                variant="error" 
+                                variant="warning" 
                                 @close="onDelete(index)"/>
                         </template>
                         <template #default>
@@ -25,7 +25,7 @@
                     <NcChip 
                         :text="shortenPath(modelValue)" 
                         :icon-path="mdiFolderOutline" 
-                        variant="error" 
+                        variant="warning" 
                         @close="onDelete(index)"/>
                 </template>
             </div>
