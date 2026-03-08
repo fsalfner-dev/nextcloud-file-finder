@@ -4,7 +4,7 @@
             <tr>
                 <th class="sortable-header">
                     <span class="header-content">
-                        File
+                        {{ t('filefinder','File') }}
                         <span class="sort-icons">
                             <ChevronUp 
                                 :size="18" 
@@ -21,7 +21,7 @@
                 </th>
                 <th class="sortable-header">
                     <span class="header-content">
-                        Modified
+                        {{ t('filefinder','Modified') }}
                         <span class="sort-icons">
                             <ChevronUp 
                                 :size="18" 
@@ -38,7 +38,7 @@
                 </th>
                 <th v-if="show_content" class="sortable-header">
                     <span class="header-content">
-                        Content
+                        {{ t('filefinder','Content') }}
                         <span class="sort-icons">
                             <ChevronDown 
                                 :size="18" 
@@ -50,7 +50,7 @@
                 </th>
                 <th class="sortable-header">
                     <span class="header-content">
-                        Actions
+                        {{ t('filefinder','Actions') }}
                     </span>
                 </th>
             </tr>
@@ -69,7 +69,7 @@
                         <FolderAction 
                             :filePath="file.name" 
                             @folderAction="onExcludeFolder" 
-                            :explanation="'Exclude all files and folders under ...'">
+                            :explanation="t('filefinder','Exclude all files and folders under ...')">
                             <template #icon>
                                 <IconFolderCancelOutline :size="20" />
                             </template>
@@ -77,14 +77,14 @@
                         <FolderAction 
                             :filePath="file.name" 
                             @folderAction="onFolderDrilldown" 
-                            :explanation="'Only show files and folders under ...'">
+                            :explanation="t('filefinder','Only show files and folders under ...')">
                             <template #icon>
                                 <IconFolderSearchOutline :size="20" />
                             </template>
                         </FolderAction>
                         <a :href="file.link" target="_blank">
                             <NcButton 
-                                aria-label="Open file"
+                                :aria-label="t('filefinder','Open file')"
                                 size="small"
                                 variant="tertiary">
                                 <template #icon>
@@ -97,7 +97,9 @@
             </tr>
         </tbody>
     </table>
-    <div v-else class="noresult">No files to be displayed</div>
+    <div v-else class="noresult">
+        {{ t('filefinder','No files to be displayed') }}
+    </div>
 </template>
 
 <script>

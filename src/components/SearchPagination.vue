@@ -25,8 +25,8 @@
 
             <!-- Page Info -->
             <span class="page-info">
-                Page {{ searchresult.page + 1 }}
-                <template v-if="totalHitsAvailable"> of {{ totalPages }}</template>
+                {{ t('filefinder','Page') }} {{ searchresult.page + 1 }}
+                <template v-if="totalHitsAvailable"> {{ t('filefinder','of') }} {{ totalPages }}</template>
             </span>
 
             <!-- Next Page Button -->
@@ -54,8 +54,11 @@
         </div>
 
         <div class="page-size-controls">
-            <label for="page-size-select">Number of results:</label>
-            <select id="page-size-select" v-model="selectedPageSize" @change="updatePageSize">
+            <label for="page-size-select">{{ t('filefinder','Number of results') }}:</label>
+            <select 
+                id="page-size-select" 
+                v-model="selectedPageSize" 
+                @change="updatePageSize">
                 <option v-for="size in pageSizes" :key="size" :value="size">
                     {{ size }}
                 </option>

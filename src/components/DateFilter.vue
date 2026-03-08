@@ -5,7 +5,7 @@
             <NcDateTimePicker 
                 :id="id"
                 type="date"
-                :placeholder="'Click to select date'" 
+                :placeholder="t('filefinder','Click to select date')" 
                 :model-value="modelValue" 
                 @update:model-value="onUpdate" />
             <NcActions>
@@ -46,7 +46,11 @@ export default {
     },
     computed: {
         label() {
-            return "Only show files " + this.dateType;
+            if (this.dateType === 'after') {
+                return t('filefinder', 'Only show files after');
+            } else {
+                return t('filefinder', 'Only show files before');
+            }
         }
     },
     emits: ['update:model-value'],

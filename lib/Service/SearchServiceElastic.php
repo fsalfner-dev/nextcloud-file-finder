@@ -63,6 +63,7 @@ class SearchServiceElastic  {
                                 IRootFolder $rootFolder,
                                 IMimeTypeDetector $mimeTypeDetector,
                                 ConfigLexicon $configLexicon,
+                                private \OCP\IL10N $l,
                                 LoggerInterface $logger) {
 		$this->appConfig = $appConfig;
         $this->urlGenerator = $urlGenerator;
@@ -73,7 +74,7 @@ class SearchServiceElastic  {
 	}
 
 	public function searchFiles(array $search_criteria, int $page, int $size, string $sort = 'score', string $sort_order = 'desc'): array {
-		$this->logger->debug('SearchServiceElastic: searchFiles called with page=' . $page . ', size=' . $size . ', sort=' . $sort . ', sort_order=' . $sort_order);
+        $this->logger->debug('SearchServiceElastic: searchFiles called with page=' . $page . ', size=' . $size . ', sort=' . $sort . ', sort_order=' . $sort_order);
 		
 		try {
 			$client = $this->buildClient();
@@ -183,7 +184,7 @@ class SearchServiceElastic  {
         $content = $search_criteria['content'] ?? '';
         $filename = $search_criteria['filename'] ?? '';
         if ((!isset($search_criteria['content']) || trim((string) $content) === '') && (!isset($search_criteria['filename']) || trim((string) $filename) === '')) {
-            throw new QueryException('Either content or filename needs to be provided');
+            throw new QueryException($this->l->t('Either content or filename needs to be provided'));
         }
         
         $this->logger->debug('SearchServiceElastic: Building query with content search: ' . (!empty($content) ? 'yes' : 'no') . ', filename search: ' . (!empty($filename) ? 'yes' : 'no'));
@@ -229,7 +230,7 @@ class SearchServiceElastic  {
                 $this->logger->debug('SearchServiceElastic: Added before_date filter: ' . $search_criteria['before_date']);
             } catch (Exception $e) {
                 $this->logger->error('SearchServiceElastic: Invalid before_date provided: ' . $search_criteria['before_date'] . ', error: ' . $e->getMessage());
-                throw new QueryException('invalid before date provided');
+                throw new QueryException($this->l->t('invalid before date provided'));
             }
         }
         if (isset($search_criteria['after_date'])) {
@@ -240,7 +241,7 @@ class SearchServiceElastic  {
                 $this->logger->debug('SearchServiceElastic: Added after_date filter: ' . $search_criteria['after_date']);
             } catch (Exception $e) {
                 $this->logger->error('SearchServiceElastic: Invalid after_date provided: ' . $search_criteria['after_date'] . ', error: ' . $e->getMessage());
-                throw new QueryException('invalid after date provided');
+                throw new QueryException($this->l->t('invalid after date provided'));
             }
         }
 
@@ -301,7 +302,7 @@ class SearchServiceElastic  {
 		$elastic_strHost = $this->appConfig->getValueString(ElasticApp::APP_NAME, ConfigLexicon::ELASTIC_HOST, '');
 		if ($elastic_strHost === '') {
 			$this->logger->error('SearchServiceElastic: ElasticSearch host not configured');
-			throw new QueryException('Your ElasticSearchPlatform is not configured properly');
+			throw new QueryException($this->l->t('Your ElasticSearchPlatform is not configured properly'));
 		}
 		$this->logger->debug('SearchServiceElastic: ElasticSearch host configured: ' . $elastic_strHost);
         
@@ -347,7 +348,7 @@ class SearchServiceElastic  {
 		$elastic_index = $this->appConfig->getValueString(ElasticApp::APP_NAME, ConfigLexicon::ELASTIC_INDEX);
 		if ($elastic_index === '') {
             $this->logger->error('SearchServiceElastic: ElasticSearch index not configured');
-            throw new ConfigException('Your ElasticSearchPlatform is not configured properly');
+            throw new ConfigException($this->l->t('Your ElasticSearchPlatform is not configured properly'));
 		}
 		$this->logger->debug('SearchServiceElastic: ElasticSearch index: ' . $elastic_index);
         return $elastic_index;

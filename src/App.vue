@@ -2,12 +2,20 @@
     <NcContent app-name="filefinder">
         <NcAppNavigation>
             <template #list>
-                <NcAppNavigationCaption name="Search for" is-heading />
-                <SearchInput v-if="initial_state.fulltextsearch_available" :modelValue="search_criteria.content" @update="onContentUpdate" @enter="onSubmit" label="Content of the file" />
-                <SearchInput :modelValue="search_criteria.filename" @update="onFilenameUpdate" @enter="onSubmit" label="Filename (wildcards allowed)" />
-                <NcAppNavigationNew text="Search Files" @click="onSubmit" />
-                <NcAppNavigationCaption name="Filter results" is-heading />
-                <NcAppNavigationItem name="File Type Filter" :allowCollapse="true">
+                <NcAppNavigationCaption :name="t('filefinder', 'Search for')" is-heading />
+                <SearchInput v-if="initial_state.fulltextsearch_available" 
+                    :modelValue="search_criteria.content" 
+                    @update="onContentUpdate" 
+                    @enter="onSubmit" 
+                    :label="t('filefinder', 'Content of the file')" />
+                <SearchInput 
+                    :modelValue="search_criteria.filename" 
+                    @update="onFilenameUpdate" 
+                    @enter="onSubmit" 
+                    :label="t('filefinder', 'Filename (wildcards allowed)')" />
+                <NcAppNavigationNew :text="t('filefinder', 'Search Files')" @click="onSubmit" />
+                <NcAppNavigationCaption :name="t('filefinder', 'Filter results')" is-heading />
+                <NcAppNavigationItem :name="t('filefinder', 'File Type Filter')" :allowCollapse="true">
                     <template #icon>
 					    <IconFileQuestionOutline :size="20" />
 				    </template>
@@ -18,7 +26,7 @@
                         <FileTypeFilter :modelValue="search_criteria.file_types" @update:model-value="onFileTypeSelect" />
                     </template>
                 </NcAppNavigationItem>
-                <NcAppNavigationItem name="Date Filter" :allowCollapse="true">
+                <NcAppNavigationItem :name="t('filefinder', 'Date Filter')" :allowCollapse="true">
                     <template #icon>
 					    <IconCalendarMonthOutline :size="20" />
 				    </template>
@@ -30,7 +38,7 @@
                         <DateFilter :modelValue="search_criteria.before_date" @update:model-value="onBeforeDateSelect" dateType="before"/>
                     </template>
                 </NcAppNavigationItem>
-                <NcAppNavigationItem name="Excluded Folders" :allowCollapse="true">
+                <NcAppNavigationItem :name="t('filefinder', 'Excluded Folders')" :allowCollapse="true">
                     <template #icon>
 					    <IconFolderCancelOutline :size="20" />
 				    </template>
@@ -41,7 +49,7 @@
                         <ExcludeFoldersFilter :modelValue="search_criteria.exclude_folders" @update:model-value="removeExcludeFolder" />
                     </template>
                 </NcAppNavigationItem>
-                <NcAppNavigationItem name="Start Folder" :allowCollapse="true">
+                <NcAppNavigationItem :name="t('filefinder', 'Start Folder')" :allowCollapse="true">
                     <template #icon>
 					    <IconFolderSearchOutline :size="20" />
 				    </template>
@@ -58,15 +66,15 @@
             <template>
                 <div id="maincontent">
                     <div v-if="contentState === contentStates.INITIAL" id="initial-state">
-                        <p>Start a search by entering criteria in the navigation panel.</p>
+                        <p>{{ t('filefinder', 'Start a search by entering criteria in the navigation panel.') }}</p>
                     </div>
                     <div v-else-if="contentState === contentStates.NO_RESULTS" id="no-results-state">
-                        <h3>Search Result</h3>
-                        <p>No files could be found matching your search criteria.</p>
+                        <h3>{{ t('filefinder', 'Search Result') }}</h3>
+                        <p>{{ t('filefinder', 'No files could be found matching your search criteria.') }}</p>
                     </div>
                     <div v-else-if="contentState === contentStates.SHOW_RESULTS" id="results-state">
                         <div id="searchresult">
-                            <h3>Search Result</h3>
+                            <h3>{{ t('filefinder', 'Search Result') }}</h3>
                             <SearchFilelist 
                                 :searchresult="search_result" 
                                 :show_content="show_content_column"
@@ -192,7 +200,7 @@ export default {
 
         onAfterDateSelect(date) {
             if ((this.search_criteria.before_date !== null) && (date >= this.search_criteria.before_date)) {
-                showError('Selected date must be earlier than the selected second date');
+                showError(t('filefinder','Selected date must be earlier than the selected second date'));
                 this.search_criteria.after_date = null;
             } else {
                 this.search_criteria.after_date = date;
@@ -204,7 +212,7 @@ export default {
 
         onBeforeDateSelect(date) {
             if ((this.search_criteria.after_date !== null) && (date <= this.search_criteria.after_date)) {
-                showError('Selected date must be later than the selected first date');
+                showError(t('filefinder','Selected date must be later than the selected first date'));
                 this.search_criteria.before_date = null;
             } else {
                 this.search_criteria.before_date = date;
@@ -217,14 +225,14 @@ export default {
         addExcludedFolder(newpath) {
             // check if the new path is more specific than an existing one
             if (this.search_criteria.exclude_folders.filter((e) => newpath.startsWith(e)).length > 0) {
-                showInfo('Path is already excluded by other excluded folders');
+                showInfo(t('filefinder','Path is already excluded by other excluded folders'));
             } else {
                 // remove already existing paths that are more specific (subfolders) of new path
                 var cleaned_folders = this.search_criteria.exclude_folders.filter((el) => !el.startsWith(newpath));
 
                 cleaned_folders.push(newpath);
                 this.search_criteria.exclude_folders = cleaned_folders;
-                showSuccess('Path added to excluded folders');
+                showSuccess(t('filefinder','Path added to excluded folders'));
                 if (this.contentState != this.contentStates.INITIAL) {
                     this.performSearch();
                 }
@@ -240,7 +248,7 @@ export default {
 
         setStartFolder(path) {
             this.search_criteria.start_folder = path;
-            showSuccess('Set path as start folder');
+            showSuccess(t('filefinder','Set path as start folder'));
             if (this.contentState != this.contentStates.INITIAL) {
                 this.performSearch();
             }
@@ -328,7 +336,9 @@ export default {
                     this.show_content_column = this.search_criteria.content !== '';
                 })
                 .catch((error) => {
-                    showError(error.response.data.error_message);
+                    let stdMsg = t('filefinder','An error has occurred performing search');
+                    let errorDetails = error?.response?.data?.error_message ?? '';
+                    showError(errorDetails !== '' ? errorDetails : stdMsg);
                     console.error(error);
                 });
         }

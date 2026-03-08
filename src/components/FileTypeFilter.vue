@@ -33,13 +33,13 @@ export default {
     data() {
         return {
             options: [
-                { value: 'images', label: 'Images' },
-                { value: 'music', label: 'Music' },
-                { value: 'pdfs', label: 'PDFs' },
-                { value: 'spreadsheets', label: 'Spreadsheets' },
-                { value: 'documents', label: 'Documents' },
-                { value: 'presentations', label: 'Presentations' },
-                { value: 'videos', label: 'Videos' },
+                { value: 'images', label: t('filefinder','Images') },
+                { value: 'music', label: t('filefinder','Music') },
+                { value: 'pdfs', label: t('filefinder','PDFs') },
+                { value: 'spreadsheets', label: t('filefinder','Spreadsheets') },
+                { value: 'documents', label: t('filefinder','Documents') },
+                { value: 'presentations', label: t('filefinder','Presentations') },
+                { value: 'videos', label: t('filefinder','Videos') },
             ],
         };
     },

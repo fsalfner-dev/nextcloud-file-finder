@@ -2,7 +2,7 @@
     <div class="folders-drilldown-container">
         <template v-if="modelValue === null">
             <div class="empty-drilldown">
-                Search starts at your root folder. Click on action in search result to limit search to a specific folder.
+                {{ t('filefinder', 'Search starts at your root folder. Click on action in search result to limit search to a specific folder.') }}
             </div>
         </template>
         <template v-else>
@@ -10,7 +10,11 @@
                 <template v-if="needsShortening(modelValue)">
                     <NcPopover :triggers="['hover']">
                         <template #trigger>
-                            <NcChip :text="shortenPath(modelValue)" :icon-path="mdiFolderOutline" variant="error" @close="onDelete(index)"/>
+                            <NcChip 
+                                :text="shortenPath(modelValue)" 
+                                :icon-path="mdiFolderOutline" 
+                                variant="error" 
+                                @close="onDelete(index)"/>
                         </template>
                         <template #default>
                             <div class="folder-drilldown-popover">{{ modelValue }}</div>
@@ -18,7 +22,11 @@
                     </NcPopover>
                 </template>
                 <template v-else>
-                    <NcChip :text="shortenPath(modelValue)" :icon-path="mdiFolderOutline" variant="error" @close="onDelete(index)"/>
+                    <NcChip 
+                        :text="shortenPath(modelValue)" 
+                        :icon-path="mdiFolderOutline" 
+                        variant="error" 
+                        @close="onDelete(index)"/>
                 </template>
             </div>
         </template>

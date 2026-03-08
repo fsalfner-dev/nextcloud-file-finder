@@ -65,6 +65,7 @@ class SearchServiceFiles  {
                                 IRootFolder $rootFolder,
                                 IUserSession $userSession,
                                 IMimeTypeDetector $mimeTypeDetector,
+                                private \OCP\IL10N $l,
                                 LoggerInterface $logger) {
         $this->urlGenerator = $urlGenerator;
         $this->userSession = $userSession;
@@ -79,7 +80,7 @@ class SearchServiceFiles  {
         $user = $this->userSession->getUser();
         if (!$user) {
             $this->logger->error('SearchServiceFiles: Could not determine user from session');
-            throw new ConfigException('could not determine user');
+            throw new ConfigException($this->l->t('could not determine user'));
         }
         $userID = $user->getUID();
         $this->logger->debug('SearchServiceFiles: User ID: ' . $userID);
@@ -131,7 +132,7 @@ class SearchServiceFiles  {
         // build the base of the query to match filenames by wildcard
         $filename = $search_criteria['filename'] ?? '';
         if ((!isset($search_criteria['filename']) || trim((string) $filename) === '')) {
-            throw new QueryException('A search pattern needs to be provided');
+            throw new QueryException($this->l->t('A search pattern needs to be provided'));
         }
         
         $filenameSearchterm = !str_starts_with($filename, '*') ? '*' . $filename : $filename;
@@ -162,7 +163,7 @@ class SearchServiceFiles  {
                 $this->logger->debug('SearchServiceFiles: Added before_date filter: ' . $search_criteria['before_date']);
             } catch (Exception $e) {
                 $this->logger->error('SearchServiceFiles: Invalid before_date provided: ' . $search_criteria['before_date'] . ', error: ' . $e->getMessage());
-                throw new QueryException('invalid before date provided');
+                throw new QueryException($this->l->t('invalid before date provided'));
             }
             $beforeOperator = new SearchComparison(ISearchComparison::COMPARE_LESS_THAN_EQUAL, 'mtime', $before_seconds);
             $searchOperator = new SearchBinaryOperator(ISearchBinaryOperator::OPERATOR_AND, [ $searchOperator, $beforeOperator ]);
@@ -174,7 +175,7 @@ class SearchServiceFiles  {
                 $this->logger->debug('SearchServiceFiles: Added after_date filter: ' . $search_criteria['after_date']);
             } catch (Exception $e) {
                 $this->logger->error('SearchServiceFiles: Invalid after_date provided: ' . $search_criteria['after_date'] . ', error: ' . $e->getMessage());
-                throw new QueryException('invalid after date provided');
+                throw new QueryException($this->l->t('invalid after date provided'));
             }
             $afterOperator = new SearchComparison(ISearchComparison::COMPARE_GREATER_THAN_EQUAL, 'mtime', $after_seconds);
             $searchOperator = new SearchBinaryOperator(ISearchBinaryOperator::OPERATOR_AND, [ $searchOperator, $afterOperator ]);
