@@ -1,3 +1,18 @@
+<!--
+This component shows the folder where search starts as a chip and allowing to 
+remove it by clicking on the chip's close "x".
+
+If the folder path is too long, it is shortened with an ellipsis, and the full path
+is shown using a popover element.
+
+```vue
+<template>
+    <FolderDrilldownFilter 
+        :modelValue="folder" 
+        @update:model-value="removeFolder" />
+</template>
+```
+-->
 <template>
     <div class="folders-drilldown-container">
         <template v-if="modelValue === null">
@@ -26,7 +41,7 @@
                         :text="shortenPath(modelValue)" 
                         :icon-path="mdiFolderOutline" 
                         variant="warning" 
-                        @close="onDelete(index)"/>
+                        @close="onDelete"/>
                 </template>
             </div>
         </template>
@@ -48,6 +63,9 @@ export default {
         NcPopover,
     },
     props: {
+        /**
+         * the path of the folder
+         */
         modelValue: {
             type: String,
             default: null,
@@ -60,12 +78,25 @@ export default {
 	},
     emits: ['update:model-value'],
     methods: {
-        onDelete(idx) {
+        /**
+         * handler method when user clicks on the chip's delete cross
+         */
+        onDelete() {
             this.$emit('update:model-value', null);
         },
+
+        /**
+         * Tests if a path is too long and needs to be shortened
+         * @param path The full path of a folder
+         */
         needsShortening(path) {
             return path.length > CUTOFF_LENGTH;
         },
+
+        /**
+         * Cuts of the remainder of a path and adds an ellipsis
+         * @param path the full path of a folder
+         */
         shortenPath(path) {
             return path.substring(0,CUTOFF_LENGTH) + '…';
         }

@@ -1,5 +1,35 @@
+<!--
+This component renders the search results as a table.
+
+The table headers show up and down chevrons to modify the sort column and order. The current
+sorting is highlighted by a bolder chevron.
+
+Depending on whether full-text search is used or not, the column showing the fulltext highlights
+is shown or hidden. If the column is shown, the search results contains a list of highlights,
+which are rendered as an unordered list.
+
+In the table each file is shown as a separate row. Each offers actions to the user:
+  * exclude a folder that the file is in
+  * drill down into the folder that the file is in
+  * open the file in a separate tab
+
+```vue
 <template>
-    <table v-if="searchresult.files.length > 0" class="nc-table">
+    <SearchFilelist 
+        :files="searchresult_files" 
+        :show_content="show_content_column"
+        :currentSort="search_sort"
+        :currentSortOrder="search_sort_order"
+        @update:sort="onSortUpdate"
+        @update:sortOrder="onSortOrderUpdate"
+        @excludeFolder="addExcludedFolder"
+        @folderDrilldown="setStartFolder"
+    />
+</template>
+```
+-->
+<template>
+    <table v-if="files.length > 0" class="nc-table">
         <thead>
             <tr>
                 <th class="sortable-header">
@@ -56,7 +86,7 @@
             </tr>
         </thead>
         <tbody>
-            <tr v-for="(file, index) in searchresult.files">
+            <tr v-for="file in files">
                 <td>
                     <span class="file-link">
                         <img :src="file.icon_link" class="file-icon" />
@@ -64,7 +94,16 @@
                     </span>
                 </td>
                 <td>{{ file.modified }}</td>
-                <td v-if="show_content"><ul><li v-for="highlight in file.highlights.content"><span class="highlight" v-html="highlight"></span></li></ul></td>
+                <td v-if="show_content">
+                    <ul>
+                        <!-- file.highlights.content is a list of highlights
+                             each highlight comes from Elasticsearch and already
+                             contains <em> HTML tags for highlighting -->
+                        <li v-for="highlight in file.highlights.content">
+                            <span class="highlight" v-html="highlight"></span>
+                        </li>
+                    </ul>
+                </td>
                 <td><span class="header-content">
                         <FolderAction 
                             :filePath="file.name" 
@@ -116,15 +155,42 @@ import FolderAction from './FolderAction.vue'
 export default {
     name: 'SearchFilelist',
     props: {
-        searchresult: {},
+        /**
+         * the search results to be rendered.
+         * each file entry needs to have the structure:
+         *   - name: The full path
+         *   - content_type: the file's content type
+         *   - highlights: a list of content with highlighted search terms
+         *   - icon_link: an URL to the file type icon
+         *   - modified: a localized string representation of the modification timestamp
+         *   - link: an URL to open the file
+         */
+        files: {
+            type: Array,
+            default: []
+        },
+
+        /**
+         * show the content column
+         */
         show_content: {
             type: Boolean,
             default: false
         },
+
+        /**
+         * name of the sorting column
+         * @values path, modified, score, 
+         */
         currentSort: {
             type: String,
             default: 'score'
         },
+
+        /** 
+         * the sort order
+         * @values asc, desc 
+         */
         currentSortOrder: {
             type: String,
             default: 'desc'
@@ -147,6 +213,12 @@ export default {
         FolderAction,
     },
 	methods: {
+
+        /**
+         * handle the user's click on a sorting chevron
+         * @param sortCriterion 
+         * @param sortOrder 
+         */
         handleSort(sortCriterion, sortOrder) {
             // Set the sort criterion and order
             if (this.currentSort !== sortCriterion) {
@@ -156,9 +228,19 @@ export default {
                 this.$emit('update:sortOrder', sortOrder);
             }
         },
+
+        /**
+         * handle the event when a user selected a folder to be excluded
+         * @param path the path to be excluded
+         */
         onExcludeFolder(path) {
             this.$emit('excludeFolder', path);
         },
+
+        /**
+         * handle the event when a user selected a foler to drill down into
+         * @param path the path to use as root folder for the search
+         */
         onFolderDrilldown(path) {
             this.$emit('folderDrilldown', path);
         }

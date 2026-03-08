@@ -1,3 +1,6 @@
+<!--
+The app's main component.
+-->
 <template>
     <NcContent app-name="filefinder">
         <NcAppNavigation>
@@ -72,11 +75,17 @@
                         <h3>{{ t('filefinder', 'Search Result') }}</h3>
                         <p>{{ t('filefinder', 'No files could be found matching your search criteria.') }}</p>
                     </div>
+                    <div v-else-if="contentState === contentStates.LOADING" id="no-results-state">
+                        <h3>{{ t('filefinder', 'Search Result') }}</h3>
+                        <div class="loading-indicator">
+                            <NcLoadingIcon :size="48" />
+                        </div>
+                    </div>
                     <div v-else-if="contentState === contentStates.SHOW_RESULTS" id="results-state">
                         <div id="searchresult">
                             <h3>{{ t('filefinder', 'Search Result') }}</h3>
                             <SearchFilelist 
-                                :searchresult="search_result" 
+                                :files="search_result.files" 
                                 :show_content="show_content_column"
                                 :currentSort="search_sort"
                                 :currentSortOrder="search_sort_order"
@@ -88,7 +97,9 @@
                         </div>
                         <div id="pagination">
                             <SearchPagination 
-                                :searchresult="search_result"
+                                :size="search_result.size"
+                                :page="search_result.page"
+                                :hits="search_result.hits"
                                 :totalHitsAvailable="initial_state.fulltextsearch_available" 
                                 @update:page="onPageUpdate" 
                                 @update:size="onSizeUpdate" />
@@ -124,12 +135,17 @@ import IconFolderCancelOutline from 'vue-material-design-icons/FolderCancelOutli
 import IconFolderSearchOutline from 'vue-material-design-icons/FolderSearchOutline.vue'
 import NcAppNavigationSpacer from '@nextcloud/vue/components/NcAppNavigationSpacer'
 import NcCounterBubble from '@nextcloud/vue/components/NcCounterBubble'
+import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
 
 
 export default {
     name: 'App',
     data() {
         return {
+
+            /**
+             * the collection of criteria to determine the search
+             */
             search_criteria: {
                 content: '',
                 filename: '',
@@ -139,25 +155,52 @@ export default {
                 start_folder: null,
                 exclude_folders: [],
             },
+
+            /**
+             * pagination settings
+             */
             search_pagination: {
                 page: 0,
                 size: 10,
             },
+
+            /**
+             * sorting settings
+             */
             search_sort: 'score',
             search_sort_order: 'desc',
+
+            /**
+             * the structure to hold the result coming from the search backend
+             */
             search_result: {
                 hits: null,
                 page: 0,
                 size: 10,
                 files: []
             },
+
+            /**
+             * state management: the constants to be used
+             */
             contentStates: {
                 INITIAL: 'initial',
                 NO_RESULTS: 'no_results',
                 SHOW_RESULTS: 'show_results',
+                LOADING: 'loading',
             },
             contentState: 'initial', // Default state
+
+            /**
+             * determine if a content column makes sense (only if the search backend provides
+             * content highlighting such as the Elasticsearch backend)
+             */
             show_content_column: false,
+
+            /**
+             * the backend provides data for the initial state with the following keys:
+             *   - fulltextsearch_available
+             */
             initial_state: loadState('filefinder', 'initial_state'),
         }
     },
@@ -170,6 +213,7 @@ export default {
         NcAppNavigationItem,
         NcAppNavigationSpacer,
         NcCounterBubble,
+        NcLoadingIcon,
         IconFileQuestionOutline,
         IconCalendarMonthOutline,
         IconFolderCancelOutline,
@@ -183,14 +227,27 @@ export default {
         FolderDrilldownFilter,
     },
     methods: {
+
+        /**
+         * handler when the content search input has been updated
+         * @param e the content of the content input element
+         */
         onContentUpdate(e) {
             this.search_criteria.content = e;
         },
 
+        /**
+         * handler for changes in the filename input element
+         * @param e content of the filename input element
+         */
         onFilenameUpdate(e) {
             this.search_criteria.filename = e;
         },
 
+        /**
+         * handler for changes in the list of selected file types
+         * @param e the list of selected file types
+         */
         onFileTypeSelect(e) {
             this.search_criteria.file_types = e;
             if (this.contentState != this.contentStates.INITIAL) {
@@ -198,6 +255,10 @@ export default {
             }
         },
 
+        /**
+         * handler for the date filter selector for files modified after the selected date
+         * @param date 
+         */
         onAfterDateSelect(date) {
             if ((this.search_criteria.before_date !== null) && (date >= this.search_criteria.before_date)) {
                 showError(t('filefinder','Selected date must be earlier than the selected second date'));
@@ -210,6 +271,10 @@ export default {
             }
         },
 
+        /**
+         * handler for the date filter selector for files modified before the selected date
+         * @param date 
+         */
         onBeforeDateSelect(date) {
             if ((this.search_criteria.after_date !== null) && (date <= this.search_criteria.after_date)) {
                 showError(t('filefinder','Selected date must be later than the selected first date'));
@@ -222,6 +287,10 @@ export default {
             }
        },
 
+       /**
+        * handler when the user selected a folder to be added to the list of excluded folders
+        * @param newpath 
+        */
         addExcludedFolder(newpath) {
             // check if the new path is more specific than an existing one
             if (this.search_criteria.exclude_folders.filter((e) => newpath.startsWith(e)).length > 0) {
@@ -239,13 +308,21 @@ export default {
             }
         },
 
-        removeExcludeFolder(e) {
-            this.search_criteria.exclude_folders = e;
+        /**
+         * handler when the user clicks on the x of an excluded folder
+         * @param folders the updated list of folders
+         */
+        removeExcludeFolder(folders) {
+            this.search_criteria.exclude_folders = folders;
             if (this.contentState != this.contentStates.INITIAL) {
                 this.performSearch();
             }
         },
 
+        /**
+         * handler for setting the start folder
+         * @param path 
+         */
         setStartFolder(path) {
             this.search_criteria.start_folder = path;
             showSuccess(t('filefinder','Set path as start folder'));
@@ -254,6 +331,9 @@ export default {
             }
         },
 
+        /**
+         * handler for when user removes the start folder from the filter component
+         */
         removeStartFolder(e) {
             this.search_criteria.start_folder = null;
             if (this.contentState != this.contentStates.INITIAL) {
@@ -261,11 +341,19 @@ export default {
             }
         },
 
+        /**
+         * handler for changing the search result page
+         * @param e 
+         */
         onPageUpdate(e) {
             this.search_pagination.page = e;
             this.performSearch();
         },
 
+        /**
+         * handler for changing the search result page size
+         * @param e 
+         */
         onSizeUpdate(e) {
             // compute the new page number so that the same search results remain on the screen
             this.search_pagination.page = Math.floor(this.search_pagination.page * this.search_pagination.size / e);
@@ -273,18 +361,31 @@ export default {
             this.performSearch();
         },
 
-        onSortUpdate(e) {
-            this.search_sort = e;
+        /**
+         * handler for changing the sort field
+         * @param field the search field
+         * @values path, modified, score, 
+         */
+        onSortUpdate(field) {
+            this.search_sort = field;
             this.search_pagination.page = 0;
             this.performSearch();
         },
 
-        onSortOrderUpdate(e) {
-            this.search_sort_order = e;
+        /**
+         * handler for changing the sort order
+         * @param order the search order
+         * @values asc, desc
+         */
+        onSortOrderUpdate(order) {
+            this.search_sort_order = order;
             this.search_pagination.page = 0;
             this.performSearch();
         },
 
+        /**
+         * compute the number of active date filters (for showing the counter bubble)
+         */
         getNoOfDateFilters() {
             let i = 0;
             if (this.search_criteria.before_date !== null) {
@@ -296,16 +397,27 @@ export default {
             return i;
         },
 
+        /**
+         * handler for the submit button
+         */
         onSubmit() {
             this.performSearch();
         },
 
+        /**
+         * send a search request to the backend and update the result / state of the app
+         */
         performSearch() {
+            this.contentState = this.contentStates.LOADING;
             const url = generateUrl('/apps/filefinder/search');
+
+            // when there is no search content, switch sorting to the file path
             if ((this.search_criteria.content === '') && (this.search_sort === 'score')){
                 this.search_sort = 'path';
                 this.search_sort_order = 'asc';
             }
+
+            // construct the URL parameters for submitting the search
             const params = {
                 search_criteria: this.search_criteria,
                 size: this.search_pagination.size,
@@ -313,6 +425,7 @@ export default {
                 sort: this.search_sort,
                 sort_order: this.search_sort_order,
             };
+            
             axios.get(url, { params: params })
                 .then((response) => {
                     this.search_result.hits = response.data.hits;
@@ -373,5 +486,9 @@ export default {
     justify-content: center;
     align-items: center;
     gap: 16px;
+}
+
+.loading-indicator {
+    margin-top: 50px;
 }
 </style>

@@ -1,5 +1,20 @@
+<!--
+This component manages pagination and page size selection
+
+```vue
 <template>
-    <div class="search-pagination" v-if="searchresult.hits > 0">
+    <SearchPagination 
+        :size="search_result.size"
+        :page="search_result.page"
+        :hits="search_result.hits"
+        :totalHitsAvailable="true" 
+        @update:page="onPageUpdate" 
+        @update:size="onSizeUpdate" />
+</template>
+```
+-->
+<template>
+    <div class="search-pagination" v-if="hits > 0">
         <div class="pagination-controls">
             <!-- First Page Button -->
             <NcButton
@@ -16,7 +31,7 @@
             <NcButton
                 :disabled="isFirstPage"
                 variant="secondary"
-                @click="goToPage(searchresult.page - 1)"
+                @click="goToPage(page - 1)"
             >
                 <template #icon>
 				    <ChevronLeft :size="20" />
@@ -25,7 +40,7 @@
 
             <!-- Page Info -->
             <span class="page-info">
-                {{ t('filefinder','Page') }} {{ searchresult.page + 1 }}
+                {{ t('filefinder','Page') }} {{ page + 1 }}
                 <template v-if="totalHitsAvailable"> {{ t('filefinder','of') }} {{ totalPages }}</template>
             </span>
 
@@ -33,7 +48,7 @@
             <NcButton
                 :disabled="isLastPage"
                 variant="secondary"
-                @click="goToPage(searchresult.page + 1)"
+                @click="goToPage(page + 1)"
             >
                 <template #icon>
 				    <ChevronRight :size="20" />
@@ -77,10 +92,35 @@ import PageLast from 'vue-material-design-icons/PageLast.vue'
 export default {
     name: 'SearchPagination',
     props: {
-        searchresult: {
-            type: Object,
+        /**
+         * the number of hits. 
+         * If totalHitsAvailable == true: the total number of hits
+         * else: the number of hits in the current page
+         */
+        hits: {
+            type: Number,
             required: true,
         },
+
+        /**
+         * the page size
+         */
+        size: {
+            type: Number,
+            required: true
+        },
+
+        /**
+         * the page number
+         */
+        page: {
+            type: Number,
+            required: true
+        },
+
+        /**
+         * true if the search backend provides the total number of hits, e.g. like Elasticsearch does
+         */
         totalHitsAvailable: {
             type: Boolean,
             required: true,
@@ -96,25 +136,36 @@ export default {
     data() {
         return {
             pageSizes: [5, 10, 50, 100], 
-            selectedPageSize: this.searchresult.size, 
+            selectedPageSize: this.size, 
         }
     },
     computed: {
+
+        /**
+         * calculate the number of pages if it makes sense (only if total number of hits is available)
+         */
         totalPages() {
             if (this.totalHitsAvailable) {
-                return Math.ceil(this.searchresult.hits / this.searchresult.size);
+                return Math.ceil(this.hits / this.size);
             } else {
                 return 1;
             }
         },
+
         isFirstPage() {
-            return this.searchresult.page === 0
+            return this.page === 0
         },
+
+        /**
+         * if the search backend does not provide the total number of pages we can only
+         * determine if it the last page if the backend returned fewer search results
+         * than the page size
+         */
         isLastPage() {
             if (this.totalHitsAvailable) {
-                return this.searchresult.page === this.totalPages - 1;
+                return this.page === this.totalPages - 1;
             } else {
-                return this.searchresult.hits < this.searchresult.size;
+                return this.hits < this.size;
             }
         },
     },
