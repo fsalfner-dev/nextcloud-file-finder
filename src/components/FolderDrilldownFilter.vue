@@ -1,4 +1,8 @@
 <!--
+
+SPDX-FileCopyrightText: 2026 Felix Salfner
+SPDX-License-Identifier: AGPL-3.0-or-later
+
 This component shows the folder where search starts as a chip and allowing to 
 remove it by clicking on the chip's close "x".
 

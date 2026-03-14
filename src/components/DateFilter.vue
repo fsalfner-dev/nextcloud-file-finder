@@ -1,4 +1,8 @@
 <!--
+
+SPDX-FileCopyrightText: 2026 Felix Salfner
+SPDX-License-Identifier: AGPL-3.0-or-later
+
 This component renders a label and a date picker to select a date for filtering.
 
 It supports two types: `before` and `after` provided by the `dateType` prop.

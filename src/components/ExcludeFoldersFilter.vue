@@ -1,4 +1,8 @@
 <!--
+
+SPDX-FileCopyrightText: 2026 Felix Salfner
+SPDX-License-Identifier: AGPL-3.0-or-later
+
 This component renders a list of excluded folders as chips.
 Each chip can be removed by clicking on the chip close "x".
 

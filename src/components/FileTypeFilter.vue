@@ -1,4 +1,8 @@
 <!--
+
+SPDX-FileCopyrightText: 2026 Felix Salfner
+SPDX-License-Identifier: AGPL-3.0-or-later
+
 This component renders a list of document types where each type can be selected using a checkbox.
 
 The values of the options are translated in the backend into file extensions.

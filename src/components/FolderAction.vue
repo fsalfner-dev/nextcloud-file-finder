@@ -1,4 +1,8 @@
 <!--
+
+SPDX-FileCopyrightText: 2026 Felix Salfner
+SPDX-License-Identifier: AGPL-3.0-or-later
+
 This component is used to let users pick a sub-path of the provided 'filePath'.
 
 For example, if '/Media/Music/mySong.mp3' is provided as filePath, the user

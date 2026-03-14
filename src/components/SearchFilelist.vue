@@ -1,4 +1,8 @@
 <!--
+
+SPDX-FileCopyrightText: 2026 Felix Salfner
+SPDX-License-Identifier: AGPL-3.0-or-later
+
 This component renders the search results as a table.
 
 The table headers show up and down chevrons to modify the sort column and order. The current
