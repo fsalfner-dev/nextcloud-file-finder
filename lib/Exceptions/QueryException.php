@@ -10,5 +10,9 @@ namespace OCA\FileFinder\Exceptions;
 
 
 use Exception;
+
+/**
+ * An Exception class to indicate problems when performing a search
+ */
 class QueryException extends Exception {
 }

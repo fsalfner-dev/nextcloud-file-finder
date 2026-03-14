@@ -80,6 +80,14 @@ class PageController extends Controller {
 		$this->userId = $userId;
 	}
 
+	/**
+	 * The main route returning the page.
+	 * 
+	 * The frontend needs to know if fulltext search is available, so it can show/hide the input field
+	 * for the fulltext content to be searched for.
+	 * 
+	 * This info is provided to the frontend via the InitialState service.
+	 */
 	#[NoCSRFRequired]
 	#[NoAdminRequired]
 	#[OpenAPI(OpenAPI::SCOPE_IGNORE)]
@@ -99,11 +107,37 @@ class PageController extends Controller {
 
 
 	/**
-	 * This is the API endpoint to search Elasticsearch with the given parameters
+	 * This is the API endpoint to search for files with the given parameters
 	 * It returns a JSONResponse with the search result
+	 * 
+	 * The parameter search_criteria may contain the following keys:
+	 *   - filename: String to search for filenames with wildcards
+	 *   - content: String with content to be matched by ElasticSearch
+	 *   - file_types: an array of file types from TypeExtensionMapper to filter for
+	 *   - before_date: an ISO representation of date to filter for
+	 *   - after_date: an ISO representation of date to filter for
+	 *   - exclude_folders: an array of Strings with folders to be excluded
+	 *   - start_folder: a String with a folder to use as root folder for the search
+	 * 
+	 * The JSONResponse contains the keys:
+	 *   - hits: the number of hits returned by the backend (some search services return the total number, others only for the current page)
+	 *   - page: the current page number
+	 *   - size: the current page size
+	 *   - files: an array of files matching the search criteria
+	 *       - content_type: the file's mime type
+	 *       - name: the full path to the file as it appears for the user (not physical path)
+	 *       - link: an URL to open the file
+	 *       - modified_at: the modification date as returned by Node::getMtime()
+	 *       - highlights: (only if supported by the search service) an array of Strings with context and search terms highlighted with <em></em>
+	 * 
+	 * Returns an error message if the search backend raises a QueryException
+	 * 
+	 * If fulltext search with ElasticSearch is available, SearchServiceElastic is used, if not
+	 * SearchServiceFiles is used as a fallback, which does not support the 'content' search parameter 
 	 *
-	 * @param string $search_criteria - the specification of what to search for
+	 * @param array $search_criteria - the specification of what to search for
 	 * @param int $page - the page number 
+	 * @param int $size - the page size
 	 * @param string $sort - the sort criterion (score, modified, path)
 	 * @param string $sort_order - the sort order (asc, desc)
 	 * @return JSONResponse
@@ -113,6 +147,9 @@ class PageController extends Controller {
 	public function searchFiles(array $search_criteria, int $page, int $size, string $sort = 'score', string $sort_order = 'desc'): JSONResponse {
 		$this->logger->debug('PageController: searchFiles endpoint called with page=' . $page . ', size=' . $size . ', sort=' . $sort . ', sort_order=' . $sort_order);
 		
+		// instantiate the search service
+		// we cannot use dependency injection here since it would result in an error if fulltextsearch_elasticsearch
+		// is not installed in the Nextcloud instance
 		try {
 			if ($this->fulltextsearchAvailable()) {
 				$this->logger->debug('PageController: Using SearchServiceElastic');
@@ -128,6 +165,7 @@ class PageController extends Controller {
 			], Http::STATUS_INTERNAL_SERVER_ERROR);
 		}
 		
+		// invoke the search and return the result or handle exceptions by converting them to JSON error messages
 		try {
 			$result = $service->searchFiles($search_criteria, $page, $size, $sort, $sort_order);
 			$this->logger->debug('PageController: Search completed successfully, found ' . $result['hits'] . ' hits');
@@ -150,6 +188,15 @@ class PageController extends Controller {
 		}
 	}
 
+	/**
+	 * Test if fulltext search is available in the Nextcloud instance
+	 * 
+	 * The function first checks, if the app is installed and if so, if the 
+	 * search index is configured.
+	 * 
+	 * Note that this is just an indication if the app is available - it might 
+	 * still fail later when building the Elasticsearch client
+	 */
 	private function fulltextsearchAvailable() : bool {
 		$this->logger->debug('PageController: Checking if fulltext search is available');
 		

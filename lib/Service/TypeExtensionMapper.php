@@ -8,6 +8,9 @@ declare(strict_types=1);
 
 namespace OCA\FileFinder\Service;
 
+/**
+ * A class to determine file extensions for given filetypes
+ */
 class TypeExtensionMapper  {
 
     /** @var array<string, string[]> */

@@ -10,5 +10,9 @@ namespace OCA\FileFinder\Exceptions;
 
 
 use Exception;
+
+/**
+ * An Exception class to indicate problems with the search configuration
+ */
 class ConfigException extends Exception {
 }

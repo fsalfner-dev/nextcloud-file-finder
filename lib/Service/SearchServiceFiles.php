@@ -36,6 +36,9 @@ use OCA\FileFinder\Exceptions\ConfigException;
 use OCA\FileFinder\Service\TypeExtensionMapper;
 
 
+/**
+ * A search service to search for matching files using Nextcloud's internal file database
+ */
 class SearchServiceFiles  {
 
     /**
@@ -78,6 +81,40 @@ class SearchServiceFiles  {
         $this->logger = $logger;
 	}
 
+    /**
+     * The main method of the search service to perform a search for matching files by querying Nextcloud's database
+     * 
+     * The parameter search_criteria may contain the following keys:
+	 *   - filename: String to search for filenames with wildcards
+	 *   - file_types: an array of file types from TypeExtensionMapper to filter for
+	 *   - before_date: an ISO representation of date to filter for
+	 *   - after_date: an ISO representation of date to filter for
+	 *   - exclude_folders: an array of Strings with folders to be excluded
+	 *   - start_folder: a String with a folder to use as root folder for the search
+	 * 
+	 * It returns an array with the following keys:
+	 *   - hits: the number of hits returned (not the total number of hits in the database)
+	 *   - page: the current page number
+	 *   - size: the current page size
+	 *   - files: an array of files matching the search criteria
+	 *       - content_type: the file's mime type
+	 *       - name: the full path to the file as it appears for the user (not physical path)
+	 *       - link: an URL to open the file
+	 *       - modified_at: the modification date as returned by Node::getMtime()
+	 *       - highlights: an empty array since the service does not support fulltext search
+     * 
+     * raises
+     *   - ConfigException if Elasticsearch is not configured correctly 
+     *   - QueryException if the search_criteria contain an error
+     *   - ClientException if something goes wrong with the search
+     * 
+     * @param array $search_criteria - the specification of what to search for
+	 * @param int $page - the page number 
+	 * @param int $size - the page size
+	 * @param string $sort - the sort criterion (score, modified, path)
+	 * @param string $sort_order - the sort order (asc, desc)
+	 * @return array
+     */
 	public function searchFiles(array $search_criteria, int $page, int $size, string $sort = 'path', string $sort_order = 'asc'): array {
 		$this->logger->debug('SearchServiceFiles: searchFiles called with page=' . $page . ', size=' . $size . ', sort=' . $sort . ', sort_order=' . $sort_order);
 		
@@ -89,6 +126,7 @@ class SearchServiceFiles  {
         $userID = $user->getUID();
         $this->logger->debug('SearchServiceFiles: User ID: ' . $userID);
 
+        // build the search query
         try {
 			$searchQuery = $this->buildQuery($search_criteria, $user, $size, $page, $sort, $sort_order);
 			$this->logger->debug('SearchServiceFiles: Search query built successfully');
@@ -97,6 +135,7 @@ class SearchServiceFiles  {
 			throw $e;
 		}
 		
+        // execute the query on the user's root folder
         try {
 			$userFolder = $this->rootFolder->getUserFolder($userID);
 			$resultNodes = $userFolder->search($searchQuery);
@@ -106,6 +145,7 @@ class SearchServiceFiles  {
 			throw $e;
 		}
 
+        // parse the result by calling buildHit() on each hit
         $files = [];
         foreach ($resultNodes as $node) {
             try {
@@ -117,10 +157,10 @@ class SearchServiceFiles  {
 				$this->logger->error('SearchServiceFiles: Error building hit for node: ' . $e->getMessage());
 				// Continue processing other nodes
 			}
-        }
-        
+        }     
         $this->logger->debug('SearchServiceFiles: Processed ' . count($files) . ' file results');
         
+        // return the parsed results
         return [
                 'hits' => count($resultNodes),
 				'page' => $page,
@@ -129,6 +169,26 @@ class SearchServiceFiles  {
 			];
 	}
 
+    /**
+     * parse the search parameters provided and turn them into a SearchQuery
+     * 
+     * $search_criteria is an array that can contain the following keys:
+     *   - filename: wildcard search for filenames (including their path)
+     *   - file_types: the array of file types which are mapped to file extensions
+     *   - before_date: files modified before the specified date
+     *   - after_date: files modified after the specified date
+     *   - exclude_folders: exclude files which path starts with one of the provided exclusion folders
+     *   - start_folder: only include files which path starts with the provided folder prefix 
+     * 
+     * Note: the 'content' key is ignored since fulltext search is not supported
+     * 
+     * @param array $search_criteria - the search and filter criteria
+     * @param User $user - the current session's user
+     * @param int $size - the number of results that should be returned
+     * @param int $page - the number of the search result page (starting with 0)
+     * @param string $sort_field
+     * @param string $sort_order
+     */
     private function buildQuery($search_criteria, $user, $size, $page, $sort_field, $sort_order) : ISearchQuery {
         $this->logger->debug('SearchServiceFiles: Building search query');
         $userFolder = $this->rootFolder->getUserFolder($user->getUID());
@@ -238,6 +298,7 @@ class SearchServiceFiles  {
                 $searchOrder = new SearchOrder($order, 'path');
         }
         
+        // TODO: the +1 is not correct, but pagination does not work without it - bug in Nextcloud?
         $offset = ($page * $size) + 1;
         $this->logger->debug('SearchServiceFiles: Running search with size=' . $size . ' and offset=' . $offset);
         
@@ -253,6 +314,20 @@ class SearchServiceFiles  {
     }
 
 
+    /**
+     * turn the given file path into an array of info about the file to be used in displaying search results
+     * 
+     * The result is an array with the following keys:
+     *   - content_type: the file's MIME type
+     *   - name: the file's path and name relative to the user's home folder
+     *   - icon_link: an URL to retrieve an icon for the file's mime type
+     *   - modified_at: the file's modification time according to Node::getMtime()
+     *   - highlights: an empty array since the service does not support fulltext search
+     * 
+     * @param Node $node - the file node of the search hit
+     * @param string $userID - the current user's ID
+     * @return array | null
+     */
     private function buildHit($node, $userID) : ?array {
         try {
             $fileId = $node->getId();
@@ -275,6 +350,8 @@ class SearchServiceFiles  {
             $mimeTypeIcon = $this->mimeTypeDetector->mimeTypeIcon($mimeType);
 
             $parentFolder = dirname($path);
+
+            // generate an URL to open the file in a viewer and highlight it in a directory listing
             $url = $this->urlGenerator->linkToRouteAbsolute(
                 'files.view.index',
                 [
@@ -283,6 +360,8 @@ class SearchServiceFiles  {
                     'fileid' => $fileId,
                     ]
                 );
+
+            // put everything together in an array
             return [
                 'content_type' => $mimeType,
                 'name' => $relativePath,
