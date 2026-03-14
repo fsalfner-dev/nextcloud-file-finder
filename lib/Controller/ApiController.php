@@ -26,7 +26,7 @@ class ApiController extends OCSController {
 	 * 200: Data returned
 	 */
 	#[NoAdminRequired]
-	#[ApiRoute(verb: 'GET', url: '/api')]
+	#[ApiRoute(verb: 'GET', url: '/api/test')]
 	public function index(): DataResponse {
 		return new DataResponse(
 			['message' => 'Hello world!']
