@@ -81,4 +81,4 @@ jobs:
 
       - name: PHPUnit
         working-directory: apps/${{ env.APP_NAME }}
-        run: ./vendor/phpunit/phpunit/phpunit -c tests/phpunit.xml
+        run: ./vendor/bin/phpunit -c tests/phpunit.xml
