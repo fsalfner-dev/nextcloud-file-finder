@@ -159,7 +159,7 @@ class SearchServiceElastic  {
         }
 
         // add the specification for sorting
-        $sortClause = $this->buildSort($sort, $sort_order);
+        $sortClause = $this->buildSort($sort, $sort_order, $user);
         if ($sortClause !== null) {
             $params['body']['sort'] = $sortClause;
         }
@@ -256,11 +256,13 @@ class SearchServiceElastic  {
         $this->logger->debug('SearchServiceElastic: Building query with content search: ' . (!empty($content) ? 'yes' : 'no') . ', filename search: ' . (!empty($filename) ? 'yes' : 'no'));
 
         // base query to make sure only documents that the user can see are returned
+        $share_key = 'share_names.' . $user;
+        $share_keyword = $share_key . '.keyword';
         $query = [
             'bool' => [
                 'filter' => [
                     [ 'regexp' => [ 'title.keyword' => '.+' ] ],
-                    [ 'exists' => [ 'field' => 'share_names.' . $user ]]
+                    [ 'exists' => [ 'field' => $share_key ]]
                 ]
             ]
         ];
@@ -272,10 +274,9 @@ class SearchServiceElastic  {
         }
 
         // extend query to only return files matching the filename wildcard
-        // TODO: check if switch to share name instead of title.keyword
         if (isset($search_criteria['filename']) && trim((string) $filename) !== '') {
             $filename_searchterm = !str_starts_with($filename, '*') ? '*' . $filename : $filename;
-            $query['bool']['filter'][] = [ 'wildcard' => [ 'title.keyword' => $filename_searchterm ] ];
+            $query['bool']['filter'][] = [ 'wildcard' => [ $share_keyword => $filename_searchterm ] ];
             $this->logger->debug('SearchServiceElastic: Added filename wildcard clause for: ' . $filename_searchterm);
         }
 
@@ -314,7 +315,6 @@ class SearchServiceElastic  {
 
         // extend the query to exclude files and folders below the provided list of excluded
         // folders
-        // TODO: check if switch to share name instead of title.keyword
         if (isset($search_criteria['exclude_folders']) && is_array($search_criteria['exclude_folders'])) {
             $this->logger->debug('SearchServiceElastic: Adding exclude_folders filter for ' . count($search_criteria['exclude_folders']) . ' folders');
             $query['bool']['must_not'] = [];
@@ -323,15 +323,14 @@ class SearchServiceElastic  {
                     $this->logger->error('SearchServiceElastic: Exclude folder is not a string: ' . gettype($folder));
                     continue;
                 }
-                $query['bool']['must_not'][] = ['prefix' => [ 'title.keyword' => ['value' => $folder]]];
-                $query['bool']['must_not'][] = ['term' => [ 'title.keyword' => ['value' => substr($folder,0,-1)]]];
+                $query['bool']['must_not'][] = ['prefix' => [ $share_keyword => ['value' => $folder]]];
+                $query['bool']['must_not'][] = ['term' => [ $share_keyword => ['value' => substr($folder,0,-1)]]];
             }
         }
 
         // extend the query to only show files beneath the start folder (root of the search)
-        // TODO: check if switch to share name instead of title.keyword
         if (isset($search_criteria['start_folder']) && trim((string) $search_criteria['start_folder']) !== '') {
-            $query['bool']['filter'][] = ['prefix' => [ 'title.keyword' => ['value' => $search_criteria['start_folder']]]];
+            $query['bool']['filter'][] = ['prefix' => [ $share_keyword => ['value' => $search_criteria['start_folder']]]];
             $this->logger->debug('SearchServiceElastic: Added start_folder filter: ' . $search_criteria['start_folder']);
         }
         return $query;
@@ -349,8 +348,9 @@ class SearchServiceElastic  {
      * 
      * @param $sort String - the sort field
      * @param $sort_order String - the sort order
+     * @param $userID String - the user ID
      */
-    private function buildSort(string $sort, string $sort_order = 'desc'): ?array {
+    private function buildSort(string $sort, string $sort_order = 'desc', string $userID ): ?array {
         // Validate sort_order
         $order = ($sort_order === 'asc') ? 'asc' : 'desc';
         
@@ -370,7 +370,7 @@ class SearchServiceElastic  {
                 // Sort by file path
                 // TODO: check if switch to share name instead of title.keyword
                 return [
-                    ['title.keyword' => ['order' => $order]],
+                    [ 'share_names.' . $userID . '.keyword' => ['order' => $order]],
                     '_score' // Secondary sort by relevance
                 ];
             default:
@@ -495,7 +495,7 @@ class SearchServiceElastic  {
             $mimeType = $node->getMimetype();
             $mimeTypeIcon = $this->mimeTypeDetector->mimeTypeIcon($mimeType);
             // TODO: check if not $filePath should be used here
-            $title = $hit['_source']['title'];
+            $title = $filePath;
             $parentFolder = dirname($filePath);
 
              
