@@ -1,10 +1,10 @@
 <?php
 
-namespace OCA\NoteBook\Tests;
+namespace OCA\FileFinder\Tests;
 
 use OCA\FileFinder\AppInfo\Application;
 
-class NoteServiceTest extends \Test\TestCase {
+class SearchServiceFilesTest extends \Test\TestCase {
 
 	public function testDummy() {
 		$app = new Application();
