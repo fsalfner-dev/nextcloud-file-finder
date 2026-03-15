@@ -227,6 +227,7 @@ class SearchServiceElastic  {
             $this->logger->debug('SearchServiceElastic: Adding highlighting for content search');
             return ['fields' => [ 
                 'content' => [ 
+                    'fragment_size' => 80,
                     'type' => 'plain',
                     'fragmenter' => 'span']]];
         } else {
