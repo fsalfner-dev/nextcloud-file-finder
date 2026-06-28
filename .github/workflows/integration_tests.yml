@@ -9,7 +9,7 @@ env:
 jobs:
   php:
     runs-on: ubuntu-latest
-    container: node:20-bookworm-slim
+    container: debian:bookworm
 
     strategy:
       # do not stop on another job's failure
@@ -40,7 +40,9 @@ jobs:
     steps:
       - name: Test services
         run: |
-          ping mysql
+          apt update -y
+          apt install -y curl
+          curl http://mysql:3306
 
       - name: Checkout server
         uses: actions/checkout@v6
