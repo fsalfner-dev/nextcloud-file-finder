@@ -10,6 +10,7 @@ jobs:
   php:
     runs-on: ubuntu-latest
 
+
     strategy:
       # do not stop on another job's failure
       fail-fast: false
@@ -22,7 +23,7 @@ jobs:
     services:
       mysql:
         image: mariadb:10.11
-        environment:
+        env:
           MYSQL_ROOT_PASSWORD: 'nextcloud'
           MYSQL_PASSWORD: 'nextcloud'
           MYSQL_USER: 'nextcloud'
@@ -30,13 +31,17 @@ jobs:
 
       elasticsearch:
         image: elasticsearch:9.4.2
-        environment:
+        env:
           - ELASTIC_PASSWORD=elastic
           - discovery.type=single-node
           - bootstrap.memory_lock=true
           - xpack.security.enabled=false
 
     steps:
+      - name: Test services
+        run: |
+          ping mysql
+
       - name: Checkout server
         uses: actions/checkout@v6
         with:
