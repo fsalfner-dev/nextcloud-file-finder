@@ -42,11 +42,19 @@ jobs:
     services:
       mysql:
         image: mariadb:10.11
-        ports:
-          - 4444:3306/tcp
-        env:
-          MYSQL_ROOT_PASSWORD: rootpassword
-        options: --health-cmd="mysqladmin ping" --health-interval 5s --health-timeout 2s --health-retries 5
+        environment:
+          MYSQL_ROOT_PASSWORD: 'nextcloud'
+          MYSQL_PASSWORD: 'nextcloud'
+          MYSQL_USER: 'nextcloud'
+          MYSQL_DATABASE: 'nextcloud'
+
+      elasticsearch:
+        image: elasticsearch:9.4.2
+        environment:
+          - ELASTIC_PASSWORD=elastic
+          - discovery.type=single-node
+          - bootstrap.memory_lock=true
+          - xpack.security.enabled=false
 
     steps:
       - name: Checkout server
@@ -74,11 +82,10 @@ jobs:
 
       - name: Set up Nextcloud
         run: |
-          export DB_PORT=4444
           mkdir data
-          ./occ maintenance:install --verbose --database=mysql --database-name=nextcloud --database-host=127.0.0.1 --database-port=$DB_PORT --database-user=root --database-pass=rootpassword --admin-user admin --admin-pass admin
+          ./occ maintenance:install --verbose --database=mysql --database-name=nextcloud --database-host=mysql --database-port=3306 --database-user=nextcloud --database-pass=nextcloud --admin-user=admin --admin-pass=admin
           ./occ app:enable --force ${{ env.APP_NAME }}
 
       - name: PHPUnit
         working-directory: apps/${{ env.APP_NAME }}
-        run: ./vendor/bin/phpunit -c tests/phpunit.xml
+        run: ./vendor/bin/phpunit -c tests/phpunit.xml --testsuite integration
