@@ -9,7 +9,7 @@ env:
 jobs:
   php:
     runs-on: ubuntu-latest
-
+    container: node:20-bookworm-slim
 
     strategy:
       # do not stop on another job's failure
