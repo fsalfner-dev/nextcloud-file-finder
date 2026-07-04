@@ -9,7 +9,7 @@ env:
 jobs:
   php:
     runs-on: ubuntu-latest
-    container: debian:bookworm
+    container: node:26-bookworm
 
     strategy:
       # do not stop on another job's failure
@@ -38,12 +38,6 @@ jobs:
           xpack.security.enabled: 'false'
 
     steps:
-      - name: Test services
-        run: |
-          apt update -y
-          apt install -y curl
-          curl http://mysql:3306
-
       - name: Checkout server
         uses: actions/checkout@v6
         with:
