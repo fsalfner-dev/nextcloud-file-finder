@@ -57,7 +57,8 @@ class SearchServiceFilesIntegrationTest extends TestCase {
             $this->createUser($this->users[0]);
             $this->createUser($this->users[1]);
             $this->deleteAllFiles();
-            $this->createTestFiles();                    
+            $this->createTestFiles();     
+            $this->setupFileSharing();               
             echo "test setup successfully created with users " . $this->users[0]['user'] . " and " . $this->users[1]['user'] . ' ... ';
         } catch (\Throwable $e) {
             throw $e;
@@ -75,10 +76,12 @@ class SearchServiceFilesIntegrationTest extends TestCase {
      * remove files and users
      */
     protected function tearDown(): void {
-        $this->deleteUser($this->users[0]);
-        $this->deleteUser($this->users[1]);
+#        $this->deleteUser($this->users[0]);
+#        $this->deleteUser($this->users[1]);
         parent::tearDown();
     }
+
+    /* =================== PROTECTED METHODS ================= */
 
     /**
      * Create a user in the Nextcloud instance
@@ -86,8 +89,7 @@ class SearchServiceFilesIntegrationTest extends TestCase {
      * Since we need full functionality (file storage, sharing, etc.) we need to 
      * set it up via the REST API
      */
-    private function createUser(array $user) {
-
+    protected function createUser(array $user) {
         $payload = [
             'userid' => $user['user'],
             'password' => $user['pwd'],
@@ -121,7 +123,7 @@ class SearchServiceFilesIntegrationTest extends TestCase {
     /**
      * Delete a user in the Nextcloud instance
      */
-    private function deleteUser(array $user) {
+    protected function deleteUser(array $user) {
         $url = "/ocs/v2.php/cloud/users/" . $user['user'];
         $response = $this->client->request('DELETE', $url, [
             'auth' => [$this->admin['user'], $this->admin['pwd']],
@@ -140,7 +142,7 @@ class SearchServiceFilesIntegrationTest extends TestCase {
     /**
      * upload all files and directories from tests/data to Nextcloud
      * 
-     * tests/data/ contains two subdirectories, one for each user
+     * tests/data/ contains two subdirectories, one for each user (user1, user2)
      * the contents of each directory are uploaded to the two created users
      */
     protected function createTestFiles(): void {
@@ -172,10 +174,85 @@ class SearchServiceFilesIntegrationTest extends TestCase {
     }
 
     /**
+     * delete all files for both test users in the Nextcloud via WebDAV
+     */
+    protected function deleteAllFiles() : void {
+        foreach ([0,1] as $index) {
+            $user = $this->users[$index];
+            $items = $this->listDirectory($user, "");
+            foreach ($items as $item) {
+                $this->deleteItem($user, $item);
+            }
+        }
+    }
+
+    /**
+     * Set up file sharing among the two users
+     */
+
+    protected function setupFileSharing() : void {
+        $sharingSetup = [
+            [ 'sharer' => 0, 'sharee' => 1, 'src' => 'file_user1_1.txt', 'dest' => 'Shared/Folder/file_user1_1.txt' ],
+            [ 'sharer' => 0, 'sharee' => 1, 'src' => 'folder1/file_user1_f1_1.txt' ],            
+        ];
+
+        foreach ($sharingSetup as $share) {
+            $sharer = $this->users[$share['sharer']];
+            $sharee =  $this->users[$share['sharee']];
+            $src = $share['src'];
+            $this->shareFile($sharer, $sharee, $src);
+            if (!empty($share['dest'])) {
+                $path_parts = explode('/', $share['dest']);
+                $path_acc = "";
+                foreach (array_slice($path_parts, 0, -1) as $dir) {
+                    $path_acc = $path_acc . '/' . $dir;
+                    if (! $this->checkIfDirExists($sharee, $path_acc)) {
+                        $this->createDirectory($sharee, $path_acc);
+                    }
+                }
+                $this->moveFile($sharee, $src, $share['dest']);
+            }
+        }
+    }
+
+    /* ====================== PRIVATE METHODS =============================== */
+
+    /**
+     * Check if a directory exists for the given user via WebDAV
+     */
+    private function checkIfDirExists(array $user, string $path) : bool {
+        $remoteUrl = $this->getDAVUrl($user) . '/' . $path;
+        if (!str_ends_with($remoteUrl, '/')) {
+            $remoteUrl .= '/';
+        }
+        $bodyXML = <<<XML
+        <?xml version="1.0" encoding="utf-8" ?>
+        <D:propfind xmlns:D="DAV:">
+        <D:displayname/>
+        </D:propfind>
+        XML;
+        $response = $this->client->request('PROPFIND', $remoteUrl, [
+            'auth' => [$user['user'], $user['pwd']], 
+            'headers' => [
+                'Content-Type' => 'application/xml',
+                'Depth' => '0',
+            ],
+            'body' => $bodyXML,
+            'http_errors' => false,
+        ]);
+
+        $statusCode = $response->getStatusCode();
+        if (! in_array($statusCode, [207, 404])) {
+            throw new \RuntimeException("Error checking for directory $path " . $e->getMessage());
+        }
+        return $statusCode == 207;
+    }
+
+    /**
      * Create a directory on the Nextcloud using WebDAV
      */
     private function createDirectory(array $user, string $path): void {
-        $remoteUrl = '/remote.php/dav/files/' . $user['user'] . '/' . $path;
+        $remoteUrl = $this->getDAVUrl($user) . '/' . $path;
         $response = $this->client->request('MKCOL', $remoteUrl, [
             'auth' => [$user['user'], $user['pwd']], 
             'headers' => [
@@ -222,19 +299,6 @@ class SearchServiceFilesIntegrationTest extends TestCase {
                 fclose($fileStream);
             }
             throw new \RuntimeException("WebDAV-Upload failed: " . $e->getMessage());
-        }
-    }
-
-    /**
-     * delete all files for both test users in the Nextcloud via WebDAV
-     */
-    private function deleteAllFiles() : void {
-        foreach ([0,1] as $index) {
-            $user = $this->users[$index];
-            $items = $this->listDirectory($user, "");
-            foreach ($items as $item) {
-                $this->deleteItem($user, $item);
-            }
         }
     }
 
@@ -301,5 +365,52 @@ class SearchServiceFilesIntegrationTest extends TestCase {
         }
     }
 
-}
+    /**
+     * Share a file from user $sharer with user $sharee via Nextcloud OCS API.
+    */
+    private function shareFile(array $sharer, array $sharee, string $file): void {
+        $response = $this->client->request('POST', '/ocs/v2.php/apps/files_sharing/api/v1/shares', [
+            'auth' => [$sharer['user'], $sharer['pwd']],
+            'headers' => [
+                'OCS-APIRequest' => 'true',
+                'Accept' => 'application/json',
+            ],
+            'form_params' => [
+                'path'     => $file,
+                'shareType'=> 0,
+                'shareWith'=> $sharee['user'],
+            ],
+        ]);
+                    
+        if ($response->getStatusCode() !== 200) {
+            throw new \RuntimeException("Sharing file $file from $sharer to $sharee failed: " . $response->getStatusCode());
+        }
+    }
 
+    /**
+     * Move a file from src to dest for the given user via WebDAV
+     */
+    private function moveFile(array $user, string $src, string $dest ) : void {
+        $davUrl = $this->getDAVUrl($user);
+        $url = $davUrl . "/" . $src;
+        $destUrl = $davUrl . "/" . $dest;
+        if (!str_ends_with($destUrl, '/')) {
+            $destUrl .= '/';
+        }
+
+        $response = $this->client->request('MOVE', $url, [
+            'auth' => [$user['user'], $user['pwd']],
+            'headers' => [
+                'OCS-APIRequest' => 'true',
+                'Destination' => $destUrl,
+                'Overwrite' => "T"
+            ]
+        ]);
+                    
+        if (! in_array($response->getStatusCode(), [200, 201, 204])) {
+            throw new \RuntimeException("Moving file from $src to $dest for {$user['user']} failed: " . $response->getStatusCode());
+        }
+
+    }
+}
+                        
