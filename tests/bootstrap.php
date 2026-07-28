@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-require_once __DIR__ . '/../../../tests/bootstrap.php';
+require_once __DIR__ . '/bootstrap.php';
 require_once __DIR__ . '/../vendor/autoload.php';
 
 \OC_App::loadApp(OCA\FileFinder\AppInfo\Application::APP_ID);

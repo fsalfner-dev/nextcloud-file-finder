@@ -1,0 +1,73 @@
+name: Integration Tests
+
+on:
+  workflow_dispatch:
+
+env:
+  APP_NAME: filefinder
+
+jobs:
+  integration:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Start containers
+        run: |
+          docker compose -f tests/integration/compose.yml up -d
+
+      - name: Wait for Nextcloud
+        run: |
+          until curl -fs http://localhost:8080/status.php; do
+            sleep 2
+          done
+
+      - name: Copy app into Nextcloud
+        run: |
+          docker cp \
+            "$GITHUB_WORKSPACE" \
+            $(docker compose -f tests/integration/compose.yml ps -q nextcloud):/var/www/html/apps/${APP_NAME}
+
+      - name: Set permissions
+        run: |
+          docker compose -f tests/integration/compose.yml exec -T nextcloud \
+            chown -R www-data:www-data /var/www/html/apps/${APP_NAME}
+
+      - name: Install Nextcloud
+        run: |
+          docker compose -f tests/integration/compose.yml exec -T --user www-data nextcloud \
+            php occ maintenance:install \
+              --database mysql \
+              --database-host db \
+              --database-name nextcloud \
+              --database-user nextcloud \
+              --database-pass nextcloud \
+              --admin-user admin \
+              --admin-pass admin
+
+      - name: Enable app
+        run: |
+          docker compose -f tests/integration/compose.yml exec -T --user www-data nextcloud \
+            php occ app:enable ${APP_NAME}
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: 8.5
+          tools: phpunit
+
+      - name: Set up PHPUnit
+        run: |
+          composer require --dev phpunit/phpunit
+          composer require --dev guzzlehttp/guzzle
+
+      - name: PHPUnit
+        env:
+          NEXTCLOUD_URL: http://localhost:8080
+        run: ./vendor/bin/phpunit -c tests/phpintegration.xml --testsuite integration --display-warnings
+
+      - name: Shut down compose
+        if: ${{ always() }}
+        run: docker compose -f tests/integration/compose.yml down 
+            
