@@ -1,4 +1,4 @@
-name: PHPUnit
+name: Integration Tests
 
 on:
   workflow_dispatch:
@@ -7,66 +7,83 @@ env:
   APP_NAME: filefinder
 
 jobs:
-  php:
+  integration:
     runs-on: ubuntu-latest
-    container: node:26-bookworm
-
     strategy:
-      # do not stop on another job's failure
       fail-fast: false
       matrix:
-        php-versions: ['8.3']
-        server-versions: ['stable32']
-
-    name: php${{ matrix.php-versions }}-${{ matrix.server-versions }}
-
-    services:
-      mysql:
-        image: mariadb:10.11
-        env:
-          MYSQL_ROOT_PASSWORD: 'nextcloud'
-          MYSQL_PASSWORD: 'nextcloud'
-          MYSQL_USER: 'nextcloud'
-          MYSQL_DATABASE: 'nextcloud'
-
-      elasticsearch:
-        image: elasticsearch:9.4.2
-        env:
-          ELASTIC_PASSWORD: 'elastic'
-          discovery.type: 'single-node'
-          bootstrap.memory_lock: 'true'
-          xpack.security.enabled: 'false'
-
+        server-versions: ['32', '33']
+    name: Version-${{ matrix.server-versions }}
     steps:
-      - name: Checkout server
-        uses: actions/checkout@v6
-        with:
-          repository: nextcloud/server
-          ref: ${{ matrix.server-versions }}
-          submodules: true
+      - uses: actions/checkout@v4
 
-      - name: Checkout app
-        uses: actions/checkout@v6
-        with:
-          path: apps/${{ env.APP_NAME }}
+      - name: Start containers
+        env:
+          NEXTCLOUD_VERSION: ${{ matrix.server-versions }}
+        run: |
+          docker compose -f tests/integration/compose.yml up -d
 
-      - name: Set up php ${{ matrix.php-versions }}
+      - name: Wait for Nextcloud
+        run: |
+          until curl -fs http://localhost:8080/status.php; do
+            sleep 2
+          done
+
+      - name: Copy app into Nextcloud
+        env:
+          NEXTCLOUD_VERSION: ${{ matrix.server-versions }}
+        run: |
+          docker cp \
+            "$GITHUB_WORKSPACE" \
+            $(docker compose -f tests/integration/compose.yml ps -q nextcloud):/var/www/html/apps/${APP_NAME}
+
+      - name: Set permissions
+        env:
+          NEXTCLOUD_VERSION: ${{ matrix.server-versions }}
+        run: |
+          docker compose -f tests/integration/compose.yml exec -T nextcloud \
+            chown -R www-data:www-data /var/www/html/apps/${APP_NAME}
+
+      - name: Install Nextcloud
+        env:
+          NEXTCLOUD_VERSION: ${{ matrix.server-versions }}
+        run: |
+          docker compose -f tests/integration/compose.yml exec -T --user www-data nextcloud \
+            php occ maintenance:install \
+              --database mysql \
+              --database-host db \
+              --database-name nextcloud \
+              --database-user nextcloud \
+              --database-pass nextcloud \
+              --admin-user admin \
+              --admin-pass admin
+
+      - name: Enable app
+        env:
+          NEXTCLOUD_VERSION: ${{ matrix.server-versions }}
+        run: |
+          docker compose -f tests/integration/compose.yml exec -T --user www-data nextcloud \
+            php occ app:enable ${APP_NAME}
+
+      - name: Set up PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: ${{ matrix.php-versions }}
+          php-version: 8.5
           tools: phpunit
-          extensions: mbstring, iconv, fileinfo, intl, sqlite, pdo_sqlite, gd, zip
 
       - name: Set up PHPUnit
-        working-directory: apps/${{ env.APP_NAME }}
-        run: composer i
-
-      - name: Set up Nextcloud
         run: |
-          mkdir data
-          ./occ maintenance:install --verbose --database=mysql --database-name=nextcloud --database-host=mysql --database-port=3306 --database-user=nextcloud --database-pass=nextcloud --admin-user=admin --admin-pass=admin
-          ./occ app:enable --force ${{ env.APP_NAME }}
+          composer require --dev phpunit/phpunit
+          composer require --dev guzzlehttp/guzzle
 
       - name: PHPUnit
-        working-directory: apps/${{ env.APP_NAME }}
-        run: ./vendor/bin/phpunit -c tests/phpunit.xml --testsuite integration
+        env:
+          NEXTCLOUD_URL: http://localhost:8080
+        run: ./vendor/bin/phpunit -c tests/phpintegration.xml --testsuite integration --display-warnings
+
+      - name: Shut down compose
+        if: ${{ always() }}
+        env:
+          NEXTCLOUD_VERSION: ${{ matrix.server-versions }}
+        run: docker compose -f tests/integration/compose.yml down 
+            

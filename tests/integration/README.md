@@ -1,22 +1,16 @@
 # How to run integration tests
 
-## Test development
+## Local running of integration tests
 
+### Run the Nextcloud setup in Docker
+1. `export NEXTCLOUD_VERSION=33`
 1. `docker compose -f tests/integration/compose.yml up -d`
 1. `bash tests/integration/init.sh`
-1. 
 
-
-```
-docker run -it -v "./:/app/" --network integration_default ubuntu:latest
-apt-get update && apt-get install -y curl wget php-cli php-mbstring php-xml php-curl unzip
-php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
-php composer-setup.php --install-dir=/usr/local/bin --filename=composer
-cd /app
-composer install 
-composer require --dev phpunit/phpunit
-composer require --dev guzzlehttp/guzzle
-export NEXTCLOUD_URL='http://nextcloud'
-./vendor/bin/phpunit -c tests/phpintegration.xml --testsuite integration
-```
+### Run PHPUnit Tests in a separate container
+1. `docker build -f tests/integration/Dockerfile.debug -t php-debug .`
+1. `docker run -it -v ".:/app" --network integration_default php-debug bash`
+1. `cd /app && composer install && composer require --dev phpunit/phpunit && composer require --dev guzzlehttp/guzzle`
+1. `export NEXTCLOUD_URL='http://nextcloud'`
+1. `./vendor/bin/phpunit -c tests/phpintegration.xml --testsuite integration --display-warnings`
 

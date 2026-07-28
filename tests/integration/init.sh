@@ -9,5 +9,4 @@ docker compose -f tests/integration/compose.yml exec -T --user www-data nextclou
               --admin-pass admin
 
 docker compose -f tests/integration/compose.yml exec -T --user www-data nextcloud php occ config:system:set trusted_domains 1 --value=nextcloud
-docker compose -f tests/integration/compose.yml run php_debug sh cd /app && composer install && composer require --dev phpunit/phpunit && composer require --dev guzzlehttp/guzzle && bash
 
