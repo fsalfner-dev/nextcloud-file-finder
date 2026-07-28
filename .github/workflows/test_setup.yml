@@ -9,11 +9,17 @@ env:
 jobs:
   integration:
     runs-on: ubuntu-latest
-
+    strategy:
+      fail-fast: false
+      matrix:
+        server-versions: ['32', '33']
+    name: Version-${{ matrix.server-versions }}
     steps:
       - uses: actions/checkout@v4
 
       - name: Start containers
+        env:
+          NEXTCLOUD_VERSION: ${{ matrix.server-versions }}
         run: |
           docker compose -f tests/integration/compose.yml up -d
 

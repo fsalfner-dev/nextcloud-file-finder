@@ -14,7 +14,7 @@ services:
       retries: 20
 
   nextcloud:
-    image: nextcloud:32-apache
+    image: nextcloud:${NEXTCLOUD_VERSION}-apache
     container_name: integration_nextcloud
     ports:
       - "8080:80"
@@ -28,11 +28,3 @@ services:
         condition: service_healthy
 #      elasticsearch:
 #        condition: service_healthy
-
-#  php_debug:
-#    build:
-#      context: .
-#      dockerfile: Dockerfile.debug
-#    volumes:
-#      - .:/app
-
