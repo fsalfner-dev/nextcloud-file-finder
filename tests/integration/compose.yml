@@ -1,7 +1,6 @@
 services:
   db:
     image: mariadb
-    platform: linux/arm64
     container_name: integration_db
     environment:
       MYSQL_ROOT_PASSWORD: nextcloud
@@ -17,26 +16,23 @@ services:
   nextcloud:
     image: nextcloud:32-apache
     container_name: integration_nextcloud
-    platform: linux/arm64
+    ports:
+      - "8080:80"
+    environment:
+      MYSQL_HOST: db
+      MYSQL_DATABASE: nextcloud
+      MYSQL_USER: nextcloud
+      MYSQL_PASSWORD: nextcloud
     depends_on:
       db:
         condition: service_healthy
 #      elasticsearch:
 #        condition: service_healthy
 
-    ports:
-      - "8080:80"
-
-    environment:
-      MYSQL_HOST: db
-      MYSQL_DATABASE: nextcloud
-      MYSQL_USER: nextcloud
-      MYSQL_PASSWORD: nextcloud
-
-  php_debug:
-    build:
-      context: .
-      dockerfile: Dockerfile.debug
-    volumes:
-      - .:/app
+#  php_debug:
+#    build:
+#      context: .
+#      dockerfile: Dockerfile.debug
+#    volumes:
+#      - .:/app
 
