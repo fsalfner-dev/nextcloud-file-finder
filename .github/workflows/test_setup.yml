@@ -30,17 +30,23 @@ jobs:
           done
 
       - name: Copy app into Nextcloud
+        env:
+          NEXTCLOUD_VERSION: ${{ matrix.server-versions }}
         run: |
           docker cp \
             "$GITHUB_WORKSPACE" \
             $(docker compose -f tests/integration/compose.yml ps -q nextcloud):/var/www/html/apps/${APP_NAME}
 
       - name: Set permissions
+        env:
+          NEXTCLOUD_VERSION: ${{ matrix.server-versions }}
         run: |
           docker compose -f tests/integration/compose.yml exec -T nextcloud \
             chown -R www-data:www-data /var/www/html/apps/${APP_NAME}
 
       - name: Install Nextcloud
+        env:
+          NEXTCLOUD_VERSION: ${{ matrix.server-versions }}
         run: |
           docker compose -f tests/integration/compose.yml exec -T --user www-data nextcloud \
             php occ maintenance:install \
@@ -53,6 +59,8 @@ jobs:
               --admin-pass admin
 
       - name: Enable app
+        env:
+          NEXTCLOUD_VERSION: ${{ matrix.server-versions }}
         run: |
           docker compose -f tests/integration/compose.yml exec -T --user www-data nextcloud \
             php occ app:enable ${APP_NAME}
@@ -75,5 +83,7 @@ jobs:
 
       - name: Shut down compose
         if: ${{ always() }}
+        env:
+          NEXTCLOUD_VERSION: ${{ matrix.server-versions }}
         run: docker compose -f tests/integration/compose.yml down 
             
