@@ -298,8 +298,7 @@ class SearchServiceFiles  {
                 $searchOrder = new SearchOrder($order, 'path');
         }
         
-        // TODO: the +1 is not correct, but pagination does not work without it - bug in Nextcloud?
-        $offset = ($page * $size) + 1;
+        $offset = ($page * $size);
         $this->logger->debug('SearchServiceFiles: Running search with size=' . $size . ' and offset=' . $offset);
         
         $searchQuery = new SearchQuery(
