@@ -15,7 +15,13 @@ jobs:
         server-versions: ['32', '33']
     name: Version-${{ matrix.server-versions }}
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout the app
+        uses: actions/checkout@v4
+
+      - name: Build the app
+        run: |
+          npm i
+          npm run build
 
       - name: Start containers
         env:
