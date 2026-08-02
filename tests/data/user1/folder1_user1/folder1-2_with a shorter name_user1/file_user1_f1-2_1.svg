@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="230.20825"
+   height="182.66872"
+   viewBox="0 0 230.20825 182.66872"
+   version="1.1"
+   id="svg1"
+   inkscape:version="1.4.4 (dcaf3e7, 2026-05-05)"
+   sodipodi:docname="file_user1_f1-2_1.svg"
+   inkscape:export-filename="file_user1_f1-2_1.tiff"
+   inkscape:export-xdpi="96"
+   inkscape:export-ydpi="96"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview1"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:document-units="px"
+     inkscape:zoom="1"
+     inkscape:cx="139.5"
+     inkscape:cy="300"
+     inkscape:window-width="1512"
+     inkscape:window-height="949"
+     inkscape:window-x="0"
+     inkscape:window-y="33"
+     inkscape:window-maximized="0"
+     inkscape:current-layer="layer1" />
+  <defs
+     id="defs1">
+    <rect
+       x="69"
+       y="66"
+       width="198"
+       height="72"
+       id="rect1" />
+  </defs>
+  <g
+     inkscape:label="Ebene 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(-45,-7.7510167)">
+    <text
+       xml:space="preserve"
+       id="text1"
+       style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:29.3333px;font-family:Helvetica;-inkscape-font-specification:'Helvetica, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;writing-mode:lr-tb;direction:ltr;white-space:pre;shape-inside:url(#rect1);display:inline;fill:#000000"><tspan
+         x="69"
+         y="93.581709"
+         id="tspan2">Nextcloud </tspan><tspan
+         x="69"
+         y="130.24834"
+         id="tspan3">FileFinder</tspan></text>
+    <path
+       sodipodi:type="star"
+       style="fill:#000000"
+       id="path1"
+       inkscape:flatsided="false"
+       sodipodi:sides="5"
+       sodipodi:cx="250"
+       sodipodi:cy="46"
+       sodipodi:r1="25.238859"
+       sodipodi:r2="12.619429"
+       sodipodi:arg1="0.5880026"
+       sodipodi:arg2="1.2163211"
+       inkscape:rounded="0"
+       inkscape:randomized="0"
+       d="M 271,60 254.38018,57.834863 243.17457,70.298425 240.09793,53.822974 224.78165,47.017252 239.5,39.000001 l 1.73964,-16.669729 12.17308,11.520516 16.39143,-3.496737 -7.19498,15.137322 z"
+       inkscape:transform-center-x="2.1091752"
+       inkscape:transform-center-y="0.31434827" />
+    <path
+       sodipodi:type="star"
+       style="fill:#000000"
+       id="path2"
+       inkscape:flatsided="false"
+       sodipodi:sides="5"
+       sodipodi:cx="254"
+       sodipodi:cy="150"
+       sodipodi:r1="21.377558"
+       sodipodi:r2="10.688779"
+       sodipodi:arg1="1.3825748"
+       sodipodi:arg2="2.0108934"
+       inkscape:rounded="0"
+       inkscape:randomized="0"
+       d="m 258,171 -8.55371,-11.32975 -14.18241,0.62333 8.13199,-11.63615 -4.97543,-13.29565 L 252,139.5 l 11.10742,-8.8405 0.26064,14.19371 11.84019,7.83192 -13.41847,4.63398 z"
+       inkscape:transform-center-x="-1.236068"
+       inkscape:transform-center-y="0.82975105" />
+    <path
+       sodipodi:type="star"
+       style="fill:#000000"
+       id="path3"
+       inkscape:flatsided="false"
+       sodipodi:sides="5"
+       sodipodi:cx="89"
+       sodipodi:cy="150.82974"
+       sodipodi:r1="20.563047"
+       sodipodi:r2="10.281524"
+       sodipodi:arg1="1.3750245"
+       sodipodi:arg2="2.003343"
+       inkscape:rounded="0"
+       inkscape:randomized="0"
+       d="M 93,170.99999 84.690147,160.16435 71.053022,160.86692 78.790443,149.61538 73.908158,136.86281 87,140.74462 l 10.619707,-8.58409 0.353782,13.65062 11.445621,7.44732 -12.873189,4.55474 z"
+       inkscape:transform-center-x="-1.236068"
+       inkscape:transform-center-y="0.75051683"
+       transform="translate(-19.07331,19.41974)" />
+    <path
+       sodipodi:type="star"
+       style="fill:#000000"
+       id="path4"
+       inkscape:flatsided="false"
+       sodipodi:sides="5"
+       sodipodi:cx="62"
+       sodipodi:cy="22.330273"
+       sodipodi:r1="17.920542"
+       sodipodi:r2="8.9602709"
+       sodipodi:arg1="2.81968"
+       sodipodi:arg2="3.4479985"
+       inkscape:rounded="0"
+       inkscape:randomized="0"
+       d="M 45,28.000001 53.457064,19.627552 51.354479,7.9143546 61.930528,13.370271 72.420706,7.7510167 70.5,19.495408 79.085872,27.735715 67.322761,29.538232 62.138944,40.250276 56.789647,29.619901 Z"
+       inkscape:transform-center-x="-0.042935827"
+       inkscape:transform-center-y="1.6703736" />
+  </g>
+</svg>

@@ -1,3 +1,0 @@
-This file is owned by user1.
-It is a txt file.
-It resides in folder1.
