@@ -12,7 +12,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        server-versions: ['32', '33']
+        server-versions: ['32', '33', '34']
     name: Version-${{ matrix.server-versions }}
     steps:
       - name: Checkout the app
