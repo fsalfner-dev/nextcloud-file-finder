@@ -15,7 +15,7 @@ class TypeExtensionMapper  {
 
     /** @var array<string, string[]> */
     private const FILE_TYPE_EXTENSIONS = [
-        'images' => ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg', 'ico', 'heic'],
+        'images' => ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg', 'ico', 'heic', 'tif', 'tiff' ],
         'music' => ['mp3', 'ogg', 'flac', 'wav', 'm4a', 'aac', 'wma'],
         'pdfs' => ['pdf'],
         'spreadsheets' => ['xls', 'xlsx', 'ods', 'csv', 'numbers'],
