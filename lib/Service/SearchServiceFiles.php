@@ -291,7 +291,8 @@ class SearchServiceFiles  {
             case 'score':
                 // the files search service does not support filtering by score
                 // fall back to path filtering
-                $this->logger->debug('SearchServiceFiles: Score sorting not supported, falling back to path');
+                $this->logger->debug('SearchServiceFiles: Score sorting not supported, falling back to ascending path search');
+                $order = 'asc';
             case 'path':
                 // Sort by file path
             default:
