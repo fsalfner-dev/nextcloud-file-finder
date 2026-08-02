@@ -129,6 +129,121 @@ class SearchServiceFilesIntegrationTest extends TestCase {
     }
 
     /**
+     * Test folder exclusion
+     */
+    public function testFolderExclusion(): void {
+        // Exclude one folder on first level
+        $result = $this->helper->makeSearchRequest($this->users[0], filename: '*', size: 100, exclude_folders: ['folder1_user1'], sort: 'path', sort_order: 'asc');
+
+        // Check if the total number of hits is the expected value
+        $this->assertEquals($result['hits'], 3);
+
+        // Check if the first 10 files appear in the list
+        $names = array_column($result['files'], 'name');
+        $this->assertEqualsCanonicalizing( [
+            "file_user1_2.txt",
+            "file_user1_1.txt",
+            "file_user2_1.txt",
+         ], $names );
+
+        // Exclude one folder on second level
+        $result = $this->helper->makeSearchRequest($this->users[0], filename: '*', size: 100, exclude_folders: ['folder1_user1/folder1-2_with a shorter name_user1'], sort: 'path', sort_order: 'asc');
+
+        // Check if the total number of hits is the expected value
+        $this->assertEquals($result['hits'], 14);
+
+        // Check if the first 10 files appear in the list
+        $names = array_column($result['files'], 'name');
+        $this->assertEqualsCanonicalizing( [
+            "file_user1_2.txt",
+            "file_user1_1.txt",
+            "folder1_user1/",
+            "folder1_user1/file_user1_f1_3.pdf",
+            "folder1_user1/file_user1_f1_3.odt",
+            "folder1_user1/file_user1_f1_2.odt",
+            "folder1_user1/file_user1_f1_1.txt",
+            "folder1_user1/folder1-1_with a very long name and spaces for_user1/file_user1_f1-1_1.tif",
+            "folder1_user1/folder1-1_with a very long name and spaces for_user1/file_user1_f1-1_1.png",
+            "folder1_user1/folder1-1_with a very long name and spaces for_user1/file_user1_f1-1_1.odg",
+            "folder1_user1/folder1-1_with a very long name and spaces for_user1/file_user1_f1-1_1.gif",
+            "folder1_user1/folder1-1_with a very long name and spaces for_user1/file_user1_f1-1_1.bmp",
+            "folder1_user1/folder1-1_with a very long name and spaces for_user1/",
+            "file_user2_1.txt",
+         ], $names );
+
+        // Exclude two folders on second level
+        $result = $this->helper->makeSearchRequest($this->users[0], filename: '*', size: 100, exclude_folders: ['folder1_user1/folder1-2_with a shorter name_user1', 'folder1_user1/folder1-1_with a very long name and spaces for_user1'], sort: 'path', sort_order: 'asc');
+
+        // Check if the total number of hits is the expected value
+        $this->assertEquals($result['hits'], 8);
+
+        // Check if the first 10 files appear in the list
+        $names = array_column($result['files'], 'name');
+        $this->assertEqualsCanonicalizing( [
+            "file_user1_2.txt",
+            "file_user1_1.txt",
+            "folder1_user1/",
+            "folder1_user1/file_user1_f1_3.pdf",
+            "folder1_user1/file_user1_f1_3.odt",
+            "folder1_user1/file_user1_f1_2.odt",
+            "folder1_user1/file_user1_f1_1.txt",
+            "file_user2_1.txt",
+         ], $names );
+    }
+
+    /**
+     * Test start folder
+     */
+    public function testStartFolder(): void {
+        // ----- Test start folder on first level
+        $result = $this->helper->makeSearchRequest($this->users[0], filename: '*', size: 100, start_folder: 'folder1_user1', sort: 'path', sort_order: 'asc', dump: true);
+
+        // Check if the total number of hits is the expected value
+        $this->assertEquals($result['hits'], 17);
+
+        // Check if the first 10 files appear in the list
+        $names = array_column($result['files'], 'name');
+        $this->assertEqualsCanonicalizing( [
+            "folder1_user1/",
+            "folder1_user1/file_user1_f1_3.pdf",
+            "folder1_user1/file_user1_f1_3.odt",
+            "folder1_user1/file_user1_f1_2.odt",
+            "folder1_user1/file_user1_f1_1.txt",
+            "folder1_user1/folder1-1_with a very long name and spaces for_user1/file_user1_f1-1_1.tif",
+            "folder1_user1/folder1-1_with a very long name and spaces for_user1/file_user1_f1-1_1.png",
+            "folder1_user1/folder1-1_with a very long name and spaces for_user1/file_user1_f1-1_1.odg",
+            "folder1_user1/folder1-1_with a very long name and spaces for_user1/file_user1_f1-1_1.gif",
+            "folder1_user1/folder1-1_with a very long name and spaces for_user1/file_user1_f1-1_1.bmp",
+            "folder1_user1/folder1-1_with a very long name and spaces for_user1/",
+            "folder1_user1/folder1-2_with a shorter name_user1/file_user1_f1-2_1.webp",
+            "folder1_user1/folder1-2_with a shorter name_user1/file_user1_f1-2_1.tiff",
+            "folder1_user1/folder1-2_with a shorter name_user1/file_user1_f1-2_1.svg",
+            "folder1_user1/folder1-2_with a shorter name_user1/file_user1_f1-2_1.png",
+            "folder1_user1/folder1-2_with a shorter name_user1/file_user1_f1-2_1.pdf",
+            "folder1_user1/folder1-2_with a shorter name_user1/",
+        ], $names );
+
+        // ----- Test start folder on second level
+        $result = $this->helper->makeSearchRequest($this->users[0], filename: '*', size: 100, start_folder: 'folder1_user1/folder1-2_with a shorter name_user1', sort: 'path', sort_order: 'asc');
+
+        // Check if the total number of hits is the expected value
+        $this->assertEquals($result['hits'], 6);
+
+        // Check if the first 10 files appear in the list
+        $names = array_column($result['files'], 'name');
+        $this->assertEqualsCanonicalizing( [
+            "folder1_user1/folder1-2_with a shorter name_user1/",
+            "folder1_user1/folder1-2_with a shorter name_user1/file_user1_f1-2_1.webp",
+            "folder1_user1/folder1-2_with a shorter name_user1/file_user1_f1-2_1.tiff",
+            "folder1_user1/folder1-2_with a shorter name_user1/file_user1_f1-2_1.svg",
+            "folder1_user1/folder1-2_with a shorter name_user1/file_user1_f1-2_1.png",
+            "folder1_user1/folder1-2_with a shorter name_user1/file_user1_f1-2_1.pdf",
+        ], $names );
+
+    }
+
+
+    /**
      * Test pagination
      */
     public function testPagination(): void {
@@ -143,7 +258,7 @@ class SearchServiceFilesIntegrationTest extends TestCase {
 
         // Check if the first 10 files appear in the list
         $names = array_column($result['files'], 'name');
-        $this->assertEqualsCanonicalizing( [
+        $this->assertEquals( [
             "file_user1_1.txt",
             "file_user1_2.txt",
             "folder1_user1/",
@@ -164,7 +279,7 @@ class SearchServiceFilesIntegrationTest extends TestCase {
 
         // Check if the first 10 files appear in the list
         $names = array_column($result['files'], 'name');
-        $this->assertEqualsCanonicalizing( [
+        $this->assertEquals( [
             "folder1_user1/folder1-1_with a very long name and spaces for_user1/file_user1_f1-1_1.odg",
             "folder1_user1/folder1-1_with a very long name and spaces for_user1/file_user1_f1-1_1.png",
             "folder1_user1/folder1-1_with a very long name and spaces for_user1/file_user1_f1-1_1.tif",
