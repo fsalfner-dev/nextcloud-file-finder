@@ -129,6 +129,128 @@ class SearchServiceFilesIntegrationTest extends TestCase {
     }
 
     /**
+     * Test filename patterns
+     */
+    public function testFilenamePatterns(): void {
+        // ----- Test for file extension pattern
+        $result = $this->helper->makeSearchRequest($this->users[0], filename: '*.png', size: 100 );
+
+        // Check if the total number of hits is the expected value
+        $this->assertEquals($result['hits'], 2);
+
+        $names = array_column($result['files'], 'name');
+        $this->assertEqualsCanonicalizing( [
+            "folder1_user1/folder1-1_with a very long name and spaces for_user1/file_user1_f1-1_1.png",
+            "folder1_user1/folder1-2_with a shorter name_user1/file_user1_f1-2_1.png",
+         ], $names );
+
+        // Check more complex pattern: fixed start
+        $result = $this->helper->makeSearchRequest($this->users[0], filename: 'folder*/*.png', size: 100 );
+
+        // Check if the total number of hits is the expected value
+        $this->assertEquals($result['hits'], 2);
+
+        $names = array_column($result['files'], 'name');
+        $this->assertEqualsCanonicalizing( [
+            "folder1_user1/folder1-1_with a very long name and spaces for_user1/file_user1_f1-1_1.png",
+            "folder1_user1/folder1-2_with a shorter name_user1/file_user1_f1-2_1.png",
+         ], $names );
+
+        // Check more complex pattern: asterisk start
+        $result = $this->helper->makeSearchRequest($this->users[0], filename: '*shorter name*', size: 100 );
+
+        // Check if the total number of hits is the expected value
+        $this->assertEquals($result['hits'], 6);
+
+        $names = array_column($result['files'], 'name');
+        $this->assertEqualsCanonicalizing( [
+            "folder1_user1/folder1-2_with a shorter name_user1/file_user1_f1-2_1.webp",
+            "folder1_user1/folder1-2_with a shorter name_user1/file_user1_f1-2_1.tiff",
+            "folder1_user1/folder1-2_with a shorter name_user1/file_user1_f1-2_1.svg",
+            "folder1_user1/folder1-2_with a shorter name_user1/file_user1_f1-2_1.png",
+            "folder1_user1/folder1-2_with a shorter name_user1/file_user1_f1-2_1.pdf",
+            "folder1_user1/folder1-2_with a shorter name_user1/",
+         ], $names );
+    }
+
+    /**
+     * Test filetype selection
+     */
+    public function testFiletypeSelection(): void {
+        // -------- single list element
+        $result = $this->helper->makeSearchRequest($this->users[0], filename: '*', size: 100, file_types:['images'], sort: 'path', sort_order: 'asc');
+
+        // Check if the total number of hits is the expected value
+        $this->assertEquals($result['hits'], 8);
+
+        // Check if the first 10 files appear in the list
+        $names = array_column($result['files'], 'name');
+        $this->assertEqualsCanonicalizing( [
+            "folder1_user1/folder1-1_with a very long name and spaces for_user1/file_user1_f1-1_1.tif",
+            "folder1_user1/folder1-1_with a very long name and spaces for_user1/file_user1_f1-1_1.png",
+            "folder1_user1/folder1-1_with a very long name and spaces for_user1/file_user1_f1-1_1.gif",
+            "folder1_user1/folder1-1_with a very long name and spaces for_user1/file_user1_f1-1_1.bmp",
+            "folder1_user1/folder1-2_with a shorter name_user1/file_user1_f1-2_1.webp",
+            "folder1_user1/folder1-2_with a shorter name_user1/file_user1_f1-2_1.tiff",
+            "folder1_user1/folder1-2_with a shorter name_user1/file_user1_f1-2_1.svg",
+            "folder1_user1/folder1-2_with a shorter name_user1/file_user1_f1-2_1.png",
+         ], $names );
+
+        // -------- two list elements
+        $result = $this->helper->makeSearchRequest($this->users[0], filename: '*', size: 100, file_types:['images', 'pdfs'], sort: 'path', sort_order: 'asc');
+
+        // Check if the total number of hits is the expected value
+        $this->assertEquals($result['hits'], 10);
+
+        // Check if the first 10 files appear in the list
+        $names = array_column($result['files'], 'name');
+        $this->assertEqualsCanonicalizing( [
+            "folder1_user1/file_user1_f1_3.pdf",                        
+            "folder1_user1/folder1-1_with a very long name and spaces for_user1/file_user1_f1-1_1.tif",
+            "folder1_user1/folder1-1_with a very long name and spaces for_user1/file_user1_f1-1_1.png",
+            "folder1_user1/folder1-1_with a very long name and spaces for_user1/file_user1_f1-1_1.gif",
+            "folder1_user1/folder1-1_with a very long name and spaces for_user1/file_user1_f1-1_1.bmp",
+            "folder1_user1/folder1-2_with a shorter name_user1/file_user1_f1-2_1.webp",
+            "folder1_user1/folder1-2_with a shorter name_user1/file_user1_f1-2_1.tiff",
+            "folder1_user1/folder1-2_with a shorter name_user1/file_user1_f1-2_1.svg",
+            "folder1_user1/folder1-2_with a shorter name_user1/file_user1_f1-2_1.png",
+            "folder1_user1/folder1-2_with a shorter name_user1/file_user1_f1-2_1.pdf",
+         ], $names );
+
+        // -------- empty list should return all files
+        $result = $this->helper->makeSearchRequest($this->users[0], filename: '*', size: 100, file_types:[], sort: 'path', sort_order: 'asc');
+
+        // Check if the total number of hits is the expected value
+        $this->assertEquals($result['hits'], 20);
+
+        // Check if the first 10 files appear in the list
+        $names = array_column($result['files'], 'name');
+        $this->assertEqualsCanonicalizing( [
+            "file_user1_2.txt",
+            "file_user1_1.txt",
+            "folder1_user1/",
+            "folder1_user1/file_user1_f1_3.pdf",
+            "folder1_user1/file_user1_f1_3.odt",
+            "folder1_user1/file_user1_f1_2.odt",
+            "folder1_user1/file_user1_f1_1.txt",
+            "folder1_user1/folder1-1_with a very long name and spaces for_user1/file_user1_f1-1_1.tif",
+            "folder1_user1/folder1-1_with a very long name and spaces for_user1/file_user1_f1-1_1.png",
+            "folder1_user1/folder1-1_with a very long name and spaces for_user1/file_user1_f1-1_1.odg",
+            "folder1_user1/folder1-1_with a very long name and spaces for_user1/file_user1_f1-1_1.gif",
+            "folder1_user1/folder1-1_with a very long name and spaces for_user1/file_user1_f1-1_1.bmp",
+            "folder1_user1/folder1-1_with a very long name and spaces for_user1/",
+            "folder1_user1/folder1-2_with a shorter name_user1/file_user1_f1-2_1.webp",
+            "folder1_user1/folder1-2_with a shorter name_user1/file_user1_f1-2_1.tiff",
+            "folder1_user1/folder1-2_with a shorter name_user1/file_user1_f1-2_1.svg",
+            "folder1_user1/folder1-2_with a shorter name_user1/file_user1_f1-2_1.png",
+            "folder1_user1/folder1-2_with a shorter name_user1/file_user1_f1-2_1.pdf",
+            "folder1_user1/folder1-2_with a shorter name_user1/",
+            "file_user2_1.txt",
+         ], $names );
+    }
+
+
+    /**
      * Test folder exclusion
      */
     public function testFolderExclusion(): void {
@@ -196,7 +318,7 @@ class SearchServiceFilesIntegrationTest extends TestCase {
      */
     public function testStartFolder(): void {
         // ----- Test start folder on first level
-        $result = $this->helper->makeSearchRequest($this->users[0], filename: '*', size: 100, start_folder: 'folder1_user1', sort: 'path', sort_order: 'asc', dump: true);
+        $result = $this->helper->makeSearchRequest($this->users[0], filename: '*', size: 100, start_folder: 'folder1_user1', sort: 'path', sort_order: 'asc');
 
         // Check if the total number of hits is the expected value
         $this->assertEquals($result['hits'], 17);
@@ -251,7 +373,7 @@ class SearchServiceFilesIntegrationTest extends TestCase {
         $this->markTestSkipped('Pagination does not work properly for files in Nextcloud');
 
         // CHECK THE FIRST PAGE
-        $result = $this->helper->makeSearchRequest($this->users[0], filename: '*', size: 10, page:0, sort: 'path', sort_order: 'asc', dump: true);
+        $result = $this->helper->makeSearchRequest($this->users[0], filename: '*', size: 10, page:0, sort: 'path', sort_order: 'asc');
 
         // Check if the total number of hits is the expected value
         $this->assertEquals($result['hits'], 10);
