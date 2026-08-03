@@ -32,8 +32,8 @@ class SearchServiceIntegrationTestHelper {
             string $content = '', 
             string $filename = '', 
             array $file_types = [], 
-            ?DateTime $after_date = null, 
-            ?DateTime $before_date = null, 
+            ?DateTimeImmutable $after_date = null, 
+            ?DateTimeImmutable $before_date = null, 
             string $start_folder = '', 
             array $exclude_folders = [], 
             int $page = 0, 
@@ -48,8 +48,8 @@ class SearchServiceIntegrationTestHelper {
                 'content' => $content,
                 'filename' => $filename,
                 'file_types' => $file_types,
-                'after_date' => $after_date,
-                'before_date' => $before_date,
+                'after_date' => $after_date?->format(DateTimeInterface::ISO8601_EXPANDED) ?? null,
+                'before_date' => $before_date?->format(DateTimeInterface::ISO8601_EXPANDED) ?? null,
                 'start_folder' => $start_folder,
                 'exclude_folders' => $exclude_folders,
             ],
@@ -150,7 +150,10 @@ class SearchServiceIntegrationTestHelper {
     }
 
     /**
-     * upload all files and directories from the given directory to the given user on Nextcloud
+     * upload all files and directories from the given directory to the given user on Nextcloud.
+     * 
+     * If the file starts with 'old_' (e.g. old_file_user1 ...) the modification time will be set
+     * to a date one month ago.
      * 
      * @param $user - the username and password of the user for which the files should be created
      * @param $rootDir - the local path under which all files will be uploaded to Nextcloud
@@ -170,10 +173,23 @@ class SearchServiceIntegrationTestHelper {
             if ($fileInfo->isDir()) {
                 $this->createDirectory($user, $relativePath);
             } else {
+                if (str_starts_with($fileInfo->getFilename(), 'old_')) {
+                    // we want to set the creation and modification time to one month ago
+                    $today = new DateTimeImmutable('now');
+                    $mdate = $today->sub(new DateInterval('P1M'));
+                } else {
+                    if (str_starts_with($fileInfo->getFilename(), 'veryold_')) {
+                        $today = new DateTimeImmutable('now');
+                        $mdate = $today->sub(new DateInterval('P3M'));
+                    } else {
+                        $mdate = null;
+                    }
+                }
                 $this->createFile(
                     $user,
                     $fileInfo->getPathname(),
-                    $relativePath
+                    $relativePath,
+                    $mdate
                 );
             }
         }
@@ -217,20 +233,66 @@ class SearchServiceIntegrationTestHelper {
         }
     }
 
-    /* ====================== PRIVATE METHODS =============================== */
+
+    /* ====================== PROTECTED METHODS =============================== */
 
     /**
      * generate the WebDAV base URL
      */
-    private function getDAVUrl(array $user) : string {
+    protected function getDAVUrl(array $user) : string {
         return "/remote.php/dav/files/" . $user['user'];
+    }
+
+    /**
+     * Upload a file to Nextcloud
+     * 
+     * @param $user - an array with username and password for the Nextcloud user
+     * @param $localFilePath - the path to the local file that should be uploaded
+     * @param $targetFilePath - the path on the Nextcloud, including the filename
+     * @param $mdate - a DateTime object to set an arbitrary modification time in the Nextcloud
+     */
+    protected function createFile(array $user, string $localFilePath, string $targetFilePath, ?DateTimeImmutable $mdate) : void {
+        if (!file_exists($localFilePath)) {
+            throw new \RuntimeException("Cannot find local file: " . $localFilePath);
+        }
+
+        $fileStream = fopen($localFilePath, 'r');
+        if (!$fileStream) {
+            throw new \RuntimeException("Cannot open local file: " . $localFilePath);
+        }
+
+        $headers = [ 'X-Requested-With' => 'XMLHttpRequest' ];
+        if (isset($mdate)) {
+            $headers['X-OC-MTime'] = "{$mdate->getTimestamp()}";
+            $headers['X-OC-CTime'] = "{$mdate->getTimestamp()}";
+        }
+
+        try {
+            $remoteUrl = '/remote.php/dav/files/' . $user['user'] . '/' . $targetFilePath;
+            $response = $this->client->request('PUT', $remoteUrl, [
+                'auth' => [$user['user'], $user['pwd']], 
+                'body' => $fileStream,
+                'headers' => $headers,
+            ]);
+
+            $statusCode = $response->getStatusCode();
+            if (!($statusCode === 201 || $statusCode === 204)) {
+                throw new \RuntimeException("Response: " . $response);
+            };
+
+        } catch (\Throwable $e) {
+            if (is_resource($fileStream)) {
+                fclose($fileStream);
+            }
+            throw new \RuntimeException("WebDAV-Upload failed: " . $e->getMessage());
+        }
     }
 
 
     /**
      * Check if a directory exists for the given user via WebDAV
      */
-    private function checkIfDirExists(array $user, string $path) : bool {
+    protected function checkIfDirExists(array $user, string $path) : bool {
         $remoteUrl = $this->getDAVUrl($user) . '/' . $path;
         if (!str_ends_with($remoteUrl, '/')) {
             $remoteUrl .= '/';
@@ -261,7 +323,7 @@ class SearchServiceIntegrationTestHelper {
     /**
      * Create a directory on the Nextcloud using WebDAV
      */
-    private function createDirectory(array $user, string $path): void {
+    protected function createDirectory(array $user, string $path): void {
         $remoteUrl = $this->getDAVUrl($user) . '/' . $path;
         $response = $this->client->request('MKCOL', $remoteUrl, [
             'auth' => [$user['user'], $user['pwd']], 
@@ -277,45 +339,9 @@ class SearchServiceIntegrationTestHelper {
     }
 
     /**
-     * Upload a file to Nextcloud
-     */
-    private function createFile(array $user, string $localFilePath, string $targetFilePath) {
-        if (!file_exists($localFilePath)) {
-            throw new \RuntimeException("Cannot find local file: " . $localFilePath);
-        }
-
-        $fileStream = fopen($localFilePath, 'r');
-        if (!$fileStream) {
-            throw new \RuntimeException("Cannot open local file: " . $localFilePath);
-        }
-
-        try {
-            $remoteUrl = '/remote.php/dav/files/' . $user['user'] . '/' . $targetFilePath;
-            $response = $this->client->request('PUT', $remoteUrl, [
-                'auth' => [$user['user'], $user['pwd']], 
-                'body' => $fileStream,
-                'headers' => [
-                    'X-Requested-With' => 'XMLHttpRequest',
-                ]
-            ]);
-
-            $statusCode = $response->getStatusCode();
-            if (!($statusCode === 201 || $statusCode === 204)) {
-                throw new \RuntimeException("Response: " . $response);
-            };
-
-        } catch (\Throwable $e) {
-            if (is_resource($fileStream)) {
-                fclose($fileStream);
-            }
-            throw new \RuntimeException("WebDAV-Upload failed: " . $e->getMessage());
-        }
-    }
-
-    /**
      * list the content of a directory via WebDAV
      */
-    private function listDirectory(array $user, string $path): array {
+    protected function listDirectory(array $user, string $path): array {
         $xml = <<<XML
         <?xml version="1.0"?>
         <d:propfind xmlns:d="DAV:">
@@ -358,7 +384,7 @@ class SearchServiceIntegrationTestHelper {
     /**
      * deletes a single item via WebDAV
      */
-    private function deleteItem(array $user, string $path) : void {
+    protected function deleteItem(array $user, string $path) : void {
         $url = $this->getDAVUrl($user) . '/' . $path;
         $response = $this->client->request('DELETE', $url, [
             'auth' => [$user['user'], $user['pwd']]
@@ -371,7 +397,7 @@ class SearchServiceIntegrationTestHelper {
     /**
      * Share a file from user $sharer with user $sharee via Nextcloud OCS API.
     */
-    private function shareFile(array $sharer, array $sharee, string $file): void {
+    protected function shareFile(array $sharer, array $sharee, string $file): void {
         $response = $this->client->request('POST', '/ocs/v2.php/apps/files_sharing/api/v1/shares', [
             'auth' => [$sharer['user'], $sharer['pwd']],
             'headers' => [
@@ -393,7 +419,7 @@ class SearchServiceIntegrationTestHelper {
     /**
      * Move a file from src to dest for the given user via WebDAV
      */
-    private function moveFile(array $user, string $src, string $dest ) : void {
+    protected function moveFile(array $user, string $src, string $dest ) : void {
         $davUrl = $this->getDAVUrl($user);
         $url = $davUrl . "/" . $src;
         $destUrl = $davUrl . "/" . $dest;
