@@ -14,16 +14,25 @@ class SearchServiceIntegrationTestHelper {
     /** @var array */
     private $admin;
 
+    /** @var array */
+    private $fileCounters = [];
+
+    /** @var DateTimeImmutable */
+    private $referenceTime;
+
+
     public function __construct(string $adminUser, string $adminPwd, string $nextcloudURL) {
         $this->client = new Client([
             'base_uri' => $nextcloudURL,
-            'timeout'  => 5.0,
+            'timeout'  => 20.0,
         ]);
 
         $this->admin = [
             'user' => $adminUser,
             'pwd' => $adminPwd
         ];
+
+        $this->referenceTime = new DateTimeImmutable('now');
 
     }
 
@@ -124,6 +133,15 @@ class SearchServiceIntegrationTestHelper {
         if ($data['ocs']['meta']['statuscode'] != 200) {
             throw new \RuntimeException("Creation of user did not return ok");
         }
+
+        // initialize file counters for the user
+        $this->fileCounters[] = [
+            'user' => $user['user'],
+            'current' => 0,
+            'old' => 0,
+            'veryold' => 0,
+        ];
+
         return $user;
     }
 
@@ -152,8 +170,14 @@ class SearchServiceIntegrationTestHelper {
     /**
      * upload all files and directories from the given directory to the given user on Nextcloud.
      * 
+     * To enable deterministic tests for sorting by modification timestamp, each file and directory
+     * gets its own manually computed time stamp. 
+     * 
+     * Since files are shared between users, each user needs to get its own offset (hence the parameter userCounter)
+     * 
      * If the file starts with 'old_' (e.g. old_file_user1 ...) the modification time will be set
      * to a date one month ago.
+
      * 
      * @param $user - the username and password of the user for which the files should be created
      * @param $rootDir - the local path under which all files will be uploaded to Nextcloud
@@ -168,21 +192,20 @@ class SearchServiceIntegrationTestHelper {
             RecursiveIteratorIterator::SELF_FIRST
         );
 
+
         foreach ($iterator as $fileInfo) {
             $relativePath = $iterator->getSubPathname();
+
             if ($fileInfo->isDir()) {
                 $this->createDirectory($user, $relativePath);
             } else {
                 if (str_starts_with($fileInfo->getFilename(), 'old_')) {
-                    // we want to set the creation and modification time to one month ago
-                    $today = new DateTimeImmutable('now');
-                    $mdate = $today->sub(new DateInterval('P1M'));
+                    $mdate = $this->getTimestamp($user, 'old');
                 } else {
                     if (str_starts_with($fileInfo->getFilename(), 'veryold_')) {
-                        $today = new DateTimeImmutable('now');
-                        $mdate = $today->sub(new DateInterval('P3M'));
+                        $mdate = $this->getTimestamp($user, 'veryold');
                     } else {
-                        $mdate = null;
+                        $mdate = $this->getTimestamp($user, 'current');
                     }
                 }
                 $this->createFile(
@@ -222,11 +245,12 @@ class SearchServiceIntegrationTestHelper {
         $this->shareFile($sharer, $sharee, $src);
         if (isset($dest)) {
             $path_parts = explode('/', $dest);
-            $path_acc = "";
+            $path_acc = [];
             foreach (array_slice($path_parts, 0, -1) as $dir) {
-                $path_acc = $path_acc . '/' . $dir;
-                if (! $this->checkIfDirExists($sharee, $path_acc)) {
-                    $this->createDirectory($sharee, $path_acc);
+                $path_acc[] = $dir;
+                $path = implode('/', $path_acc);
+                if (! $this->checkIfDirExists($sharee, $path)) {
+                    $this->createDirectory($sharee, $path);
                 }
             }
             $this->moveFile($sharee, $src, $dest);
@@ -268,7 +292,7 @@ class SearchServiceIntegrationTestHelper {
         }
 
         try {
-            $remoteUrl = '/remote.php/dav/files/' . $user['user'] . '/' . $targetFilePath;
+            $remoteUrl = $this->getDAVUrl($user) . '/' . $targetFilePath;
             $response = $this->client->request('PUT', $remoteUrl, [
                 'auth' => [$user['user'], $user['pwd']], 
                 'body' => $fileStream,
@@ -325,11 +349,10 @@ class SearchServiceIntegrationTestHelper {
      */
     protected function createDirectory(array $user, string $path): void {
         $remoteUrl = $this->getDAVUrl($user) . '/' . $path;
+
         $response = $this->client->request('MKCOL', $remoteUrl, [
             'auth' => [$user['user'], $user['pwd']], 
-            'headers' => [
-                'X-Requested-With' => 'XMLHttpRequest',
-            ]
+            'headers' => [ 'X-Requested-With' => 'XMLHttpRequest' ],
         ]);
 
         $statusCode = $response->getStatusCode();
@@ -440,6 +463,47 @@ class SearchServiceIntegrationTestHelper {
             throw new \RuntimeException("Moving file from $src to $dest for {$user['user']} failed: " . $response->getStatusCode());
         }
 
+    }
+
+    /**
+     * calculate creation / modification timestamp based on
+     *   - the user 
+     *   - the file type
+     *   - the number of already existing entries for the file type 
+     */
+    protected function getTimestamp(array $user, string $fileClass) : DateTimeImmutable {
+
+        $ts = $this->referenceTime;
+
+        // subtract 35 minutes for each user. To do that we need to identify the index of the user in $fileCounters
+        $userIdx = array_search($user['user'], array_column($this->fileCounters, 'user'), true);
+        if ($userIdx > 0) {
+            for ($i = 0; $i < $userIdx; $i++) {
+                $ts = $ts->sub(new DateInterval('PT35M'));
+            }
+        }
+
+        // subtract time delta based on file type
+        switch ($fileClass) {
+            case 'veryold':
+                $ts = $ts->sub(new DateInterval('P3M'));
+                break;
+            case 'old':
+                $ts = $ts->sub(new DateInterval('P1M'));
+                break;
+            case 'current':
+            default:            
+        }
+
+        // subtract 1 minute for each file in each category
+        for ($i = 0; $i < $this->fileCounters[$userIdx][$fileClass] ?? 0; $i++) {
+            $ts = $ts->sub(new DateInterval('PT1M'));
+        }
+
+        // increase the respective counter
+        $this->fileCounters[$userIdx][$fileClass] = ($this->fileCounters[$userIdx][$fileClass] ?? 0) + 1;
+
+        return $ts;
     }
 }
                         
