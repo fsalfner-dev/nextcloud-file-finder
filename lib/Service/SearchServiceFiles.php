@@ -285,8 +285,8 @@ class SearchServiceFiles  {
         
         switch ($sort_field) {
             case 'modified':
-                // Sort by modification date
-                $searchOrder = new SearchOrder($order, 'mtime');
+                // Sort by modification date. Since mtime can be the same for multiple objects, use path as a secondary order
+                $searchOrder = [ new SearchOrder($order, 'mtime'), new SearchOrder('asc', 'path') ];
                 break;
             case 'score':
                 // the files search service does not support filtering by score
@@ -296,7 +296,7 @@ class SearchServiceFiles  {
             case 'path':
                 // Sort by file path
             default:
-                $searchOrder = new SearchOrder($order, 'path');
+                $searchOrder = [ new SearchOrder($order, 'path') ];
         }
         
         $offset = ($page * $size);
@@ -306,7 +306,7 @@ class SearchServiceFiles  {
             $searchOperator,                    // ISearchOperator
             $size,                              // int limit
             $offset,                            // int offset
-            [ $searchOrder ],                   // order
+            $searchOrder,                       // order
             $user,                              // IUser
             false                               // bool limitToHome
         );
