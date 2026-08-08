@@ -19,5 +19,12 @@
 
 ### Run PHPUnit Tests (in the php-debug container)
 1. `export NEXTCLOUD_URL='http://nextcloud'`
-1. `./vendor/bin/phpunit -c tests/phpintegration.xml --testsuite integration --display-warnings`
+1. `./vendor/bin/phpunit -c tests/phpintegration.xml --testsuite integration_fulltext --display-warnings`
+
+### Disable Fulltextsearch (outside php-debug)
+1. `docker compose -f tests/integration/compose.yml exec -T --user www-data nextcloud php occ app:disable fulltextsearch`
+
+### run Files Testsuite in php-debug container
+1. `export NEXTCLOUD_URL='http://nextcloud'`
+1. `./vendor/bin/phpunit -c tests/phpintegration.xml --testsuite integration_files --display-warnings`
 

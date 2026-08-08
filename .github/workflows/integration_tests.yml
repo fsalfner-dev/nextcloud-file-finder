@@ -50,7 +50,7 @@ jobs:
           docker compose -f tests/integration/compose.yml exec -T nextcloud \
             chown -R www-data:www-data /var/www/html/apps/${APP_NAME}
 
-      - name: Install Nextcloud
+      - name: Setup Nextcloud
         env:
           NEXTCLOUD_VERSION: ${{ matrix.server-versions }}
         run: |
@@ -64,7 +64,23 @@ jobs:
               --admin-user admin \
               --admin-pass admin
 
-      - name: Enable app
+          # Setup fulltext search
+          docker compose -f tests/integration/compose.yml exec -T --user www-data nextcloud php occ app:install fulltextsearch
+          docker compose -f tests/integration/compose.yml exec -T --user www-data nextcloud php occ app:install fulltextsearch_elasticsearch
+          docker compose -f tests/integration/compose.yml exec -T --user www-data nextcloud php occ app:install files_fulltextsearch
+          
+          # temporary fix for bug in Nextcloud fulltextsearch
+          docker compose -f tests/integration/compose.yml exec -T --user www-data nextcloud sed -i 's/setAppValueBool($k, $save\[$k/setAppValueBool($k, (bool)$save\[$k/g' custom_apps/fulltextsearch/lib/Service/ConfigService.php
+
+          # configure fulltextsearch
+          docker compose -f tests/integration/compose.yml exec -T --user www-data nextcloud php occ fulltextsearch:configure '{"search_platform":"OCA\\FullTextSearch_Elasticsearch\\Platform\\ElasticSearchPlatform"}'
+          docker compose -f tests/integration/compose.yml exec -T --user www-data nextcloud php occ fulltextsearch_elasticsearch:configure '{"elastic_host":"http://elasticsearch:9200", "elastic_index":"testindex"}'
+
+          # run index once for testing
+          docker compose -f tests/integration/compose.yml exec -T --user www-data nextcloud php occ fulltextsearch:index
+
+
+      - name: Enable filefinder app
         env:
           NEXTCLOUD_VERSION: ${{ matrix.server-versions }}
         run: |
@@ -82,10 +98,22 @@ jobs:
           composer require --dev phpunit/phpunit
           composer require --dev guzzlehttp/guzzle
 
-      - name: PHPUnit
+      - name: Run tests with fulltext search
         env:
           NEXTCLOUD_URL: http://localhost:8080
-        run: ./vendor/bin/phpunit -c tests/phpintegration.xml --testsuite integration --display-warnings
+        run: ./vendor/bin/phpunit -c tests/phpintegration.xml --testsuite integration_fulltext --display-warnings
+
+      - name: Disable Fulltext search
+        env:
+          NEXTCLOUD_VERSION: ${{ matrix.server-versions }}
+        run: |
+          docker compose -f tests/integration/compose.yml exec -T --user www-data nextcloud php occ app:disable fulltextsearch
+
+      - name: Run tests with file search backend
+        env:
+          NEXTCLOUD_URL: http://localhost:8080
+        run: ./vendor/bin/phpunit -c tests/phpintegration.xml --testsuite integration_files --display-warnings
+
 
       - name: Shut down compose
         if: ${{ always() }}

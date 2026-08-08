@@ -12,6 +12,27 @@ services:
       interval: 5s
       timeout: 5s
       retries: 20
+    
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.16.1
+    container_name: integration_elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - xpack.security.transport.ssl.enabled=false
+      - bootstrap.memory_lock=true
+      - ES_JAVA_OPTS=-Xms1g -Xmx1g
+      - http.port=9200
+      - network.host=0.0.0.0
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:9200 >/dev/null || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 20
 
   nextcloud:
     image: nextcloud:${NEXTCLOUD_VERSION}-apache
@@ -26,5 +47,5 @@ services:
     depends_on:
       db:
         condition: service_healthy
-#      elasticsearch:
-#        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
